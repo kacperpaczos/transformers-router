@@ -1,4 +1,4 @@
-import { TransformersRouter } from './router';
+import { TransformersRouter } from '../../src/router';
 
 describe('TransformersRouter', () => {
   let router: TransformersRouter;
