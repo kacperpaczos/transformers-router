@@ -1,0 +1,41 @@
+{
+  "audio": {
+    "hello-world-en.wav": {
+      "transcription": "Hello world, this is a test",
+      "keywords": ["hello", "world", "test"],
+      "language": "en",
+      "duration_seconds": 5
+    },
+    "polish-test.wav": {
+      "transcription": "Cześć, to jest test automatyczny",
+      "keywords": ["cześć", "test", "automatyczny"],
+      "language": "pl",
+      "duration_seconds": 5
+    },
+    "german-test.wav": {
+      "transcription": "Hallo, das ist ein automatischer Test",
+      "keywords": ["hallo", "test", "automatischer"],
+      "language": "de",
+      "duration_seconds": 5
+    },
+    "long-audio-pl.wav": {
+      "transcription": "To jest długi test audio w języku polskim...",
+      "keywords": ["długi", "test", "audio", "polski"],
+      "language": "pl",
+      "duration_seconds": 60
+    },
+    "silence.wav": {
+      "transcription": "",
+      "keywords": [],
+      "language": "en",
+      "duration_seconds": 1,
+      "note": "Should return empty or whitespace only"
+    }
+  },
+  "tts": {
+    "test_phrase_en": "Hello from text to speech",
+    "test_phrase_pl": "Witaj z syntezy mowy",
+    "test_phrase_de": "Hallo von der Sprachsynthese"
+  }
+}
+
