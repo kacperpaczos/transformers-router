@@ -36,7 +36,7 @@ describe('STT Integration (Whisper)', () => {
     const blob = new Blob([wavBuffer], { type: 'audio/wav' });
 
     const text = await provider.listen(blob, { language: 'en' });
-    // Wymagamy niepustej transkrypcji – dostarcz realny WAV zamiast placeholdera
+    // Require a non-empty transcription – provide a real WAV file instead of a placeholder
     expect(typeof text).toBe('string');
     expect(text.length).toBeGreaterThan(0);
   }, 120000);
