@@ -5,7 +5,7 @@
 // Wspierane modalności
 export type Modality = 'llm' | 'tts' | 'stt' | 'embedding';
 
-// Typy urządzeń
+// Device types
 export type Device = 'cpu' | 'gpu' | 'webgpu';
 
 // Typy precyzji
