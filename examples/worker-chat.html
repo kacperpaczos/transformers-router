@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat z Web Workers - Transformers Router</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .stat-card {
+            background: rgba(255,255,255,0.2);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        
+        .stat-label {
+            font-size: 0.8em;
+            opacity: 0.9;
+        }
+        
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .chat-container {
+            height: 400px;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .message.user {
+            justify-content: flex-end;
+        }
+        
+        .message-content {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            word-wrap: break-word;
+        }
+        
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+        
+        #userInput {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 1em;
+        }
+        
+        #sendBtn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        #sendBtn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Chat z Web Workers</h1>
+            <p>Non-blocking AI w przeglądarce</p>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-label">Workers</div>
+                    <div class="stat-value" id="workersTotal">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Dostępne</div>
+                    <div class="stat-value" id="workersAvailable">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Zajęte</div>
+                    <div class="stat-value" id="workersBusy">-</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">W kolejce</div>
+                    <div class="stat-value" id="workersQueued">-</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-container" id="chatContainer">
+            <div class="message assistant">
+                <div class="message-content">
+                    Cześć! Używam Web Workers, więc nie zablokuję UI podczas przetwarzania! 
+                    Ładuję model...
+                </div>
+            </div>
+        </div>
+        
+        <div class="input-container">
+            <div class="input-row">
+                <input 
+                    type="text" 
+                    id="userInput" 
+                    placeholder="Napisz wiadomość..." 
+                    disabled
+                />
+                <button id="sendBtn" disabled>Wyślij</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createAIProviderWorker } from '../dist/workers/AIProviderWorker.js';
+        
+        const chatContainer = document.getElementById('chatContainer');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        
+        const workersTotal = document.getElementById('workersTotal');
+        const workersAvailable = document.getElementById('workersAvailable');
+        const workersBusy = document.getElementById('workersBusy');
+        const workersQueued = document.getElementById('workersQueued');
+        
+        // Create provider with Web Workers
+        const provider = createAIProviderWorker({
+            llm: {
+                model: 'onnx-community/Qwen2.5-0.5B-Instruct',
+                dtype: 'q4'
+            }
+        });
+        
+        // Update stats every second
+        setInterval(() => {
+            const stats = provider.getStats();
+            if (stats) {
+                workersTotal.textContent = stats.total;
+                workersAvailable.textContent = stats.available;
+                workersBusy.textContent = stats.busy;
+                workersQueued.textContent = stats.queued;
+            }
+        }, 1000);
+        
+        // Add message to chat
+        function addMessage(content, role) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = content;
+            
+            messageDiv.appendChild(contentDiv);
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        // Load model
+        provider.on('ready', () => {
+            addMessage('✅ Model załadowany! Możesz zacząć rozmowę.', 'assistant');
+            userInput.disabled = false;
+            sendBtn.disabled = false;
+            userInput.focus();
+        });
+        
+        provider.on('error', (data) => {
+            addMessage('❌ Błąd: ' + data.error.message, 'assistant');
+        });
+        
+        // Warmup
+        provider.warmup();
+        
+        // Send message
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+            
+            addMessage(message, 'user');
+            userInput.value = '';
+            userInput.disabled = true;
+            sendBtn.disabled = true;
+            
+            try {
+                const response = await provider.chat(message);
+                addMessage(response.content, 'assistant');
+            } catch (error) {
+                addMessage('Błąd: ' + error.message, 'assistant');
+            }
+            
+            userInput.disabled = false;
+            sendBtn.disabled = false;
+            userInput.focus();
+        }
+        
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !sendBtn.disabled) {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
+
