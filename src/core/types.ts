@@ -5,10 +5,10 @@
 // Wspierane modalności
 export type Modality = 'llm' | 'tts' | 'stt' | 'embedding';
 
-// Typy urządzeń
+// Device types
 export type Device = 'cpu' | 'gpu' | 'webgpu';
 
-// Typy precyzji
+// Precision types
 export type DType = 'fp32' | 'fp16' | 'q8' | 'q4' | 'q4f16';
 
 // Message format (OpenAI-compatible)
