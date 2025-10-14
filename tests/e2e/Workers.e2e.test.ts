@@ -10,13 +10,13 @@ test.describe('Web Workers E2E Tests', () => {
     page.on('console', msg => console.log(`Browser: ${msg.text()}`));
     
     // Navigate to worker test page
-    await page.goto('/worker-chat.html');
+    await page.goto('/');
   });
 
   test('should load worker-based chat page', async ({ page }) => {
-    await expect(page.locator('h1')).toContainText('AI Chat');
-    await expect(page.locator('#input')).toBeVisible();
-    await expect(page.locator('#send')).toBeVisible();
+    await expect(page.locator('h1')).toContainText('🚀 Chat z Web Workers');
+    await expect(page.locator('#userInput')).toBeVisible();
+    await expect(page.locator('#sendBtn')).toBeVisible();
   });
 
   test('should execute LLM in worker without blocking UI', async ({ page }) => {
@@ -39,8 +39,8 @@ test.describe('Web Workers E2E Tests', () => {
     });
 
     // Start long-running inference in worker
-    await page.fill('#input', 'Write a story about space');
-    await page.click('#send');
+    await page.fill('#userInput', 'Write a story about space');
+    await page.click('#sendBtn');
 
     // While inference is running, UI should remain responsive
     // Click button 10 times rapidly
@@ -90,16 +90,16 @@ test.describe('Web Workers E2E Tests', () => {
 
   test('should handle worker errors gracefully', async ({ page }) => {
     // Try to use before warmup
-    await page.fill('#input', 'test message');
-    await page.click('#send');
+    await page.fill('#userInput', 'test message');
+    await page.click('#sendBtn');
 
-    // Should show error message
-    await expect(page.locator('#error')).toBeVisible({ timeout: 5000 });
+    // Should show error message in chat
+    await expect(page.locator('.message.assistant')).toContainText('Błąd', { timeout: 5000 });
     
-    const errorText = await page.locator('#error').textContent();
-    expect(errorText).toContain('not');
+    const errorMessage = await page.locator('.message.assistant .message-content').last().textContent();
+    expect(errorMessage).toContain('Błąd');
 
-    console.log(`✅ Error handled: "${errorText}"`);
+    console.log(`✅ Error handled: "${errorMessage}"`);
   });
 
   test('should handle multiple concurrent requests through worker pool', async ({ page }) => {
@@ -114,8 +114,8 @@ test.describe('Web Workers E2E Tests', () => {
     const messages = ['Message 1', 'Message 2', 'Message 3', 'Message 4', 'Message 5'];
     
     for (const msg of messages) {
-      await page.fill('#input', msg);
-      await page.click('#send');
+      await page.fill('#userInput', msg);
+      await page.click('#sendBtn');
       await page.waitForTimeout(100);
     }
 
@@ -142,8 +142,8 @@ test.describe('Web Workers E2E Tests', () => {
     await page.check('#streaming-mode');
 
     // Send message
-    await page.fill('#input', 'Count to 10');
-    await page.click('#send');
+    await page.fill('#userInput', 'Count to 10');
+    await page.click('#sendBtn');
 
     // Watch tokens appear progressively
     let previousLength = 0;

@@ -142,6 +142,8 @@ vite.config.ts.timestamp-*
 /test-results/
 /playwright-report/
 /playwright/.cache/
+/playwright-integration-report/
+/playwright-integration-results.json
 
 # Test cache
 .cache/test/

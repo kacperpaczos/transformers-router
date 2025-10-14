@@ -7,7 +7,7 @@ import { createAIProvider } from '../../src/core/AIProvider';
 describe('Performance Tests', () => {
   const provider = createAIProvider({
     llm: {
-      model: 'Xenova/distilgpt2',
+      model: 'Xenova/gpt2',
       dtype: 'fp32',
       device: 'cpu',
       maxTokens: 30,

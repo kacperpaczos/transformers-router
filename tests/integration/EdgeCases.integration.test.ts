@@ -7,7 +7,7 @@ import { createAIProvider } from '../../src/core/AIProvider';
 describe('Edge Cases and Error Handling', () => {
   const provider = createAIProvider({
     llm: {
-      model: 'Xenova/distilgpt2',
+      model: 'Xenova/gpt2',
       dtype: 'fp32',
       device: 'cpu',
       maxTokens: 100,
@@ -126,7 +126,7 @@ describe('Edge Cases and Error Handling', () => {
     it('should handle inference during model loading', async () => {
       const tempProvider = createAIProvider({
         llm: {
-          model: 'Xenova/distilgpt2',
+          model: 'Xenova/gpt2',
           dtype: 'fp32',
           device: 'cpu',
         },
@@ -257,7 +257,7 @@ describe('Edge Cases and Error Handling', () => {
     it('should handle model without explicit dtype', async () => {
       const tempProvider = createAIProvider({
         llm: {
-          model: 'Xenova/distilgpt2',
+          model: 'Xenova/gpt2',
           // No dtype specified - should use default
         },
       });
@@ -273,7 +273,7 @@ describe('Edge Cases and Error Handling', () => {
     it('should handle unconfigured modality gracefully', async () => {
       const minimalProvider = createAIProvider({
         llm: {
-          model: 'Xenova/distilgpt2',
+          model: 'Xenova/gpt2',
           dtype: 'fp32',
           device: 'cpu',
         },

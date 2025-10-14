@@ -89,7 +89,7 @@ export interface CompletionOptions {
 
 // TTS Options
 export interface TTSOptions {
-  speaker?: string;
+  speaker?: string | Float32Array | Float64Array;
   speed?: number;
   quality?: number;
   format?: 'wav' | 'mp3' | 'ogg';
@@ -106,6 +106,12 @@ export interface STTOptions {
 export interface EmbeddingOptions {
   pooling?: 'mean' | 'cls';
   normalize?: boolean;
+}
+
+// Chat Message
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
 }
 
 // Chat Response

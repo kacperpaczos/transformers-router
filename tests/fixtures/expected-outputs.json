@@ -1,41 +1,36 @@
 {
-  "audio": {
-    "hello-world-en.wav": {
-      "transcription": "Hello world, this is a test",
-      "keywords": ["hello", "world", "test"],
-      "language": "en",
-      "duration_seconds": 5
-    },
-    "polish-test.wav": {
-      "transcription": "Cześć, to jest test automatyczny",
-      "keywords": ["cześć", "test", "automatyczny"],
-      "language": "pl",
-      "duration_seconds": 5
-    },
-    "german-test.wav": {
-      "transcription": "Hallo, das ist ein automatischer Test",
-      "keywords": ["hallo", "test", "automatischer"],
-      "language": "de",
-      "duration_seconds": 5
-    },
-    "long-audio-pl.wav": {
-      "transcription": "To jest długi test audio w języku polskim...",
-      "keywords": ["długi", "test", "audio", "polski"],
-      "language": "pl",
-      "duration_seconds": 60
-    },
-    "silence.wav": {
-      "transcription": "",
-      "keywords": [],
-      "language": "en",
-      "duration_seconds": 1,
-      "note": "Should return empty or whitespace only"
-    }
+  "hello-world-en.wav": {
+    "text": "Hello world, this is a test.",
+    "keywords": ["hello", "world", "test"],
+    "language": "en",
+    "minConfidence": 0.7,
+    "duration_seconds": 3
   },
-  "tts": {
-    "test_phrase_en": "Hello from text to speech",
-    "test_phrase_pl": "Witaj z syntezy mowy",
-    "test_phrase_de": "Hallo von der Sprachsynthese"
+  "polish-test.wav": {
+    "text": "Cześć, to jest test automatyczny.",
+    "keywords": ["cześć", "test", "automatyczny"],
+    "language": "pl",
+    "minConfidence": 0.6,
+    "duration_seconds": 3
+  },
+  "german-test.wav": {
+    "text": "Hallo, das ist ein automatischer Test.",
+    "keywords": ["hallo", "automatischer", "test"],
+    "language": "de",
+    "minConfidence": 0.6,
+    "duration_seconds": 3
+  },
+  "long-audio-pl.wav": {
+    "keywords": ["długi", "test", "audio"],
+    "language": "pl",
+    "minDuration": 30,
+    "duration_seconds": 60
+  },
+  "sample.wav": {
+    "text": "",
+    "keywords": [],
+    "isSilence": true,
+    "duration_seconds": 1
   }
 }
 

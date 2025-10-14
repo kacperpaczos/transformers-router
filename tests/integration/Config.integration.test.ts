@@ -13,7 +13,7 @@ describe('Configuration Tests', () => {
     it('should load model with fp32', async () => {
       const provider = createAIProvider({
         llm: {
-          model: 'Xenova/distilgpt2',
+          model: 'Xenova/gpt2',
           dtype: 'fp32',
           device: 'cpu',
         },
@@ -58,7 +58,7 @@ describe('Configuration Tests', () => {
       // Test with fp32
       const provider1 = createAIProvider({
         llm: {
-          model: 'Xenova/distilgpt2',
+          model: 'Xenova/gpt2',
           dtype: 'fp32',
           device: 'cpu',
           maxTokens: 20,
@@ -80,7 +80,7 @@ describe('Configuration Tests', () => {
     it('should use CPU device explicitly', async () => {
       const provider = createAIProvider({
         llm: {
-          model: 'Xenova/distilgpt2',
+          model: 'Xenova/gpt2',
           dtype: 'fp32',
           device: 'cpu', // Explicit CPU
         },
@@ -97,7 +97,7 @@ describe('Configuration Tests', () => {
     it('should handle device not specified (default to CPU)', async () => {
       const provider = createAIProvider({
         llm: {
-          model: 'Xenova/distilgpt2',
+          model: 'Xenova/gpt2',
           dtype: 'fp32',
           // No device specified
         },
@@ -116,7 +116,7 @@ describe('Configuration Tests', () => {
     it('should switch between different LLM models', async () => {
       const provider = createAIProvider({
         llm: {
-          model: 'Xenova/distilgpt2',
+          model: 'Xenova/gpt2',
           dtype: 'fp32',
           device: 'cpu',
         },
@@ -130,7 +130,7 @@ describe('Configuration Tests', () => {
       // Update config to different model
       await provider.updateConfig({
         llm: {
-          model: 'Xenova/distilgpt2', // Same model for test stability
+          model: 'Xenova/gpt2', // Same model for test stability
           dtype: 'q8', // Different dtype
           device: 'cpu',
         },
@@ -154,7 +154,7 @@ describe('Configuration Tests', () => {
     it('should handle multiple warmup calls concurrently', async () => {
       const provider = createAIProvider({
         llm: {
-          model: 'Xenova/distilgpt2',
+          model: 'Xenova/gpt2',
           dtype: 'fp32',
           device: 'cpu',
         },
@@ -187,6 +187,10 @@ describe('Configuration Tests', () => {
 
   describe('Stop Sequences', () => {
     it('should respect stop sequences', async () => {
+      const provider = createAIProvider({
+        llm: { model: 'Xenova/gpt2', device: 'cpu' },
+      });
+
       const response = await provider.chat('Count: 1, 2, 3', {
         stopSequences: [','],
         maxTokens: 50,
@@ -196,11 +200,17 @@ describe('Configuration Tests', () => {
       
       // May or may not stop early depending on model support
       console.log(`Response with stop sequence: "${response.content}"`);
+      
+      await provider.dispose();
     }, 30000);
   });
 
   describe('System Prompt', () => {
     it('should use system prompt correctly', async () => {
+      const provider = createAIProvider({
+        llm: { model: 'Xenova/gpt2', device: 'cpu' },
+      });
+
       const response = await provider.chat('What should I do?', {
         systemPrompt: 'You are a helpful coding assistant.',
         maxTokens: 50,
@@ -210,11 +220,17 @@ describe('Configuration Tests', () => {
       expect(response.content.length).toBeGreaterThan(0);
       
       console.log(`With system prompt: "${response.content}"`);
+      
+      await provider.dispose();
     }, 30000);
   });
 
   describe('Token Usage Tracking', () => {
     it('should track token usage in responses', async () => {
+      const provider = createAIProvider({
+        llm: { model: 'Xenova/gpt2', device: 'cpu' },
+      });
+
       const response = await provider.chat('Short prompt');
 
       if (response.usage) {
@@ -230,6 +246,8 @@ describe('Configuration Tests', () => {
       } else {
         console.log('⚠️ Token usage not available for this model');
       }
+      
+      await provider.dispose();
     }, 30000);
   });
 
@@ -237,7 +255,7 @@ describe('Configuration Tests', () => {
     it('should report correct status during lifecycle', async () => {
       const tempProvider = createAIProvider({
         llm: {
-          model: 'Xenova/distilgpt2',
+          model: 'Xenova/gpt2',
           dtype: 'fp32',
           device: 'cpu',
         },
@@ -267,20 +285,26 @@ describe('Configuration Tests', () => {
     }, 180000);
 
     it('should report all statuses correctly', async () => {
+      const provider = createAIProvider({
+        llm: { model: 'Xenova/gpt2', device: 'cpu' },
+      });
+
       const allStatuses = provider.getAllStatuses();
 
       expect(Array.isArray(allStatuses)).toBe(true);
       
-      allStatuses.forEach(status => {
+      allStatuses.forEach((status: any) => {
         expect(status).toHaveProperty('modality');
         expect(status).toHaveProperty('loaded');
         expect(status).toHaveProperty('loading');
       });
 
-      const llmStatus = allStatuses.find(s => s.modality === 'llm');
+      const llmStatus = allStatuses.find((s: any) => s.modality === 'llm');
       expect(llmStatus?.loaded).toBe(true);
 
       console.log(`Statuses: ${JSON.stringify(allStatuses, null, 2)}`);
+      
+      await provider.dispose();
     });
   });
 });

@@ -7,7 +7,7 @@ import { createAIProvider } from '../../src/core/AIProvider';
 describe('Real-World Scenarios', () => {
   const provider = createAIProvider({
     llm: {
-      model: 'Xenova/distilgpt2',
+      model: 'Xenova/gpt2',
       dtype: 'fp32',
       device: 'cpu',
       maxTokens: 100,
@@ -30,19 +30,19 @@ describe('Real-World Scenarios', () => {
 
   describe('Multi-turn Conversation', () => {
     it('should handle conversation with context', async () => {
-      const conversation = [
-        { role: 'system' as const, content: 'You are a helpful assistant.' },
+      const conversation: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+        { role: 'system', content: 'You are a helpful assistant.' },
       ];
 
       // Turn 1
-      conversation.push({ role: 'user' as const, content: 'My name is Alice' });
+      conversation.push({ role: 'user', content: 'My name is Alice' });
       const response1 = await provider.chat(conversation);
-      conversation.push({ role: 'assistant' as const, content: response1.content });
+      conversation.push({ role: 'assistant', content: response1.content });
 
       expect(response1.content).toBeDefined();
 
       // Turn 2
-      conversation.push({ role: 'user' as const, content: 'What is my name?' });
+      conversation.push({ role: 'user', content: 'What is my name?' });
       const response2 = await provider.chat(conversation);
 
       expect(response2.content).toBeDefined();
@@ -54,20 +54,20 @@ describe('Real-World Scenarios', () => {
     }, 120000);
 
     it('should maintain context over 10 turns', async () => {
-      const conversation = [
-        { role: 'system' as const, content: 'You are a counting assistant.' },
+      const conversation: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+        { role: 'system', content: 'You are a counting assistant.' },
       ];
 
       for (let i = 1; i <= 10; i++) {
         conversation.push({ 
-          role: 'user' as const, 
+          role: 'user', 
           content: `Count to ${i}` 
         });
         
         const response = await provider.chat(conversation);
         
         conversation.push({ 
-          role: 'assistant' as const, 
+          role: 'assistant', 
           content: response.content 
         });
 
@@ -102,9 +102,9 @@ describe('Real-World Scenarios', () => {
       console.log(`✅ Found relevant document: "${result.text}" (similarity: ${result.similarity})`);
 
       // 4. Use LLM with context
-      const contextPrompt = [
-        { role: 'system' as const, content: 'Answer based on the provided context.' },
-        { role: 'user' as const, content: `Context: ${result.text}\n\nQuestion: ${query}` },
+      const contextPrompt: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+        { role: 'system', content: 'Answer based on the provided context.' },
+        { role: 'user', content: `Context: ${result.text}\n\nQuestion: ${query}` },
       ];
 
       const answer = await provider.chat(contextPrompt);
@@ -205,7 +205,7 @@ describe('Real-World Scenarios', () => {
     it('should properly cleanup after multiple dispose calls', async () => {
       const tempProvider = createAIProvider({
         llm: {
-          model: 'Xenova/distilgpt2',
+          model: 'Xenova/gpt2',
           dtype: 'fp32',
           device: 'cpu',
         },
@@ -225,7 +225,7 @@ describe('Real-World Scenarios', () => {
     it('should handle concurrent dispose calls', async () => {
       const tempProvider = createAIProvider({
         llm: {
-          model: 'Xenova/distilgpt2',
+          model: 'Xenova/gpt2',
           dtype: 'fp32',
           device: 'cpu',
         },

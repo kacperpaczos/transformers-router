@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browser Test Pages</title>
+  <link rel="stylesheet" href="/tests/integration-browser/__assets__/common.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "@huggingface/transformers": "/node_modules/@huggingface/transformers/dist/transformers.min.js",
+        "onnxruntime-web": "/node_modules/onnxruntime-web/dist/ort.min.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="root" class="panel">
+    <h1>Browser Test Pages</h1>
+    <p>Wybierz podstronę testową:</p>
+    <div class="links">
+      <a data-test-link href="/tests/integration-browser/__app__/llm-progress/index.html">llm-progress</a>
+      <a data-test-link href="/tests/integration-browser/__app__/stt-transcribe/index.html">stt-transcribe</a>
+      <a data-test-link href="/tests/integration-browser/__app__/tts-speak/index.html">tts-speak</a>
+      <a data-test-link href="/tests/integration-browser/__app__/embeddings-similarity/index.html">embeddings-similarity</a>
+    </div>
+  </div>
+</body>
+</html>
+
+

@@ -5,6 +5,14 @@
 import type { EmbeddingConfig, EmbeddingOptions } from '../core/types';
 import { BaseModel } from './BaseModel';
 
+// Interface for Tensor from Transformers.js
+interface Tensor {
+  data: Float32Array | number[];
+  dims: number[];
+  tolist?: () => number[][];
+  ort_tensor?: unknown; // ONNX Runtime tensor
+}
+
 // Dynamically import Transformers.js
 let transformersModule: typeof import('@huggingface/transformers') | null = null;
 
@@ -75,23 +83,49 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
     const pipeline = this.getPipeline() as (
       input: string | string[],
       opts?: unknown
-    ) => Promise<{ tolist: () => number[][] }>;
+    ) => Promise<Tensor | number[][]>;
 
     try {
-      const embeddingOptions = {
+      const result = await pipeline(text, {
         pooling: options.pooling || this.config.pooling || 'mean',
         normalize: options.normalize ?? this.config.normalize ?? true,
-      };
+      });
 
-      const result = await pipeline(text, embeddingOptions);
-
-      // Convert to array if needed
-      const embeddings = result.tolist ? result.tolist() : (result as unknown as number[][]);
-
-      return embeddings;
+      // Type-safe conversion
+      return this.tensorToArray(result);
     } catch (error) {
       throw new Error(`Embedding generation failed: ${(error as Error).message}`);
     }
+  }
+
+  /**
+   * Convert Tensor to 2D array
+   * Handles different tensor formats from Transformers.js
+   */
+  private tensorToArray(tensor: Tensor | number[][]): number[][] {
+    // Already an array
+    if (Array.isArray(tensor)) {
+      return tensor;
+    }
+
+    // Has tolist method
+    if (tensor.tolist && typeof tensor.tolist === 'function') {
+      return tensor.tolist();
+    }
+
+    // Manual conversion from tensor data
+    if (tensor.data && tensor.dims) {
+      const data = Array.from(tensor.data);
+      const [rows, cols] = tensor.dims;
+      
+      const result: number[][] = [];
+      for (let i = 0; i < rows; i++) {
+        result.push(data.slice(i * cols, (i + 1) * cols));
+      }
+      return result;
+    }
+
+    throw new Error('Unsupported tensor format');
   }
 
   /**

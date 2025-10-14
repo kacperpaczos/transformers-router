@@ -64,7 +64,7 @@ export function useChat(
       };
 
       // Add user message immediately
-      setMessages((prev) => [...prev, userMessage]);
+      setMessages((prev: Message[]) => [...prev, userMessage]);
 
       try {
         // Get response from provider
@@ -79,7 +79,7 @@ export function useChat(
           content: response.content,
         };
 
-        setMessages((prev) => [...prev, assistantMessage]);
+        setMessages((prev: Message[]) => [...prev, assistantMessage]);
         onResponse?.(response);
       } catch (err) {
         const error = err as Error;
@@ -87,7 +87,7 @@ export function useChat(
         onError?.(error);
         
         // Remove user message on error
-        setMessages((prev) => prev.slice(0, -1));
+        setMessages((prev: Message[]) => prev.slice(0, -1));
       } finally {
         setIsLoading(false);
       }
@@ -122,7 +122,7 @@ export function useChat(
           content: response.content,
         };
 
-        setMessages((prev) => [...prev, assistantMessage]);
+        setMessages((prev: Message[]) => [...prev, assistantMessage]);
         onResponse?.(response);
       } catch (err) {
         const error = err as Error;

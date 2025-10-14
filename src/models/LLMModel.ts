@@ -54,7 +54,7 @@ export class LLMModel extends BaseModel<LLMConfig> {
       const { pipeline } = await getTransformers();
 
       this.pipeline = await pipeline('text-generation', this.config.model, {
-        dtype: this.config.dtype || 'q4',
+        dtype: this.config.dtype || 'fp32', // Zmień z 'q4' na 'fp32'
         device: this.config.device || 'cpu',
         progress_callback: progressCallback,
       });
@@ -81,9 +81,10 @@ export class LLMModel extends BaseModel<LLMConfig> {
 
     const pipeline = this.getPipeline() as {
       (input: Message[] | string, opts?: unknown): Promise<
-        Array<{ generated_text: Message[] }>
+        Array<{ generated_text: Message[] | string }>
       >;
-      tokenizer?: { encode?: (text: string) => { length: number } };
+      tokenizer?: any;
+      model?: any; // Dodaj dla dostępu do config
     };
 
     // Convert string to messages array
@@ -100,6 +101,10 @@ export class LLMModel extends BaseModel<LLMConfig> {
     }
 
     // Build generation options
+    // Derive special tokens from tokenizer/model config when available
+    const eosId = (pipeline.tokenizer?.eos_token_id ?? pipeline.model?.config?.eos_token_id) ?? 50256;
+    const padId = (pipeline.tokenizer?.pad_token_id ?? pipeline.model?.config?.pad_token_id) ?? eosId;
+
     const generationOptions = {
       max_new_tokens: options.maxTokens || this.config.maxTokens || 256,
       temperature: options.temperature ?? this.config.temperature ?? 0.7,
@@ -108,11 +113,57 @@ export class LLMModel extends BaseModel<LLMConfig> {
       repetition_penalty:
         options.repetitionPenalty ?? this.config.repetitionPenalty ?? 1.0,
       do_sample: true,
-    };
+      // Stabilize ONNX Runtime execution
+      use_cache: false,
+      return_full_text: false,
+      eos_token_id: eosId,
+      pad_token_id: padId,
+    } as Record<string, unknown>;
 
     try {
-      const result = await pipeline(messageArray, generationOptions);
-      const generatedMessage = result[0].generated_text.at(-1);
+      // For models without chat_template, convert messages to simple text
+      let input: string | Message[];
+      
+      // Check if tokenizer has chat_template
+      const hasChatTemplate = pipeline.tokenizer && 
+        'chat_template' in pipeline.tokenizer && 
+        pipeline.tokenizer.chat_template;
+      
+      if (hasChatTemplate) {
+        // Use messageArray for models with chat_template
+        input = messageArray;
+      } else {
+        // Convert to simple text for models without chat_template
+        input = messageArray
+          .filter(msg => msg.role !== 'system') // Skip system messages for simple models
+          .map(msg => msg.content)
+          .join('\n');
+        if ((input as string).trim().length === 0) {
+          input = ' ';
+        }
+      }
+      
+      const result = await pipeline(input, generationOptions);
+      
+      // Handle different response formats
+      let generatedMessage: Message;
+      const gen = result[0].generated_text as unknown;
+      if (hasChatTemplate) {
+        // Expect an array of messages
+        const arr = Array.isArray(gen) ? (gen as Message[]) : [];
+        const lastMessage = arr.at(-1);
+        if (!lastMessage) {
+          throw new Error('No response generated');
+        }
+        generatedMessage = lastMessage;
+      } else {
+        // For simple text completion, wrap in Message format
+        const textResult = typeof gen === 'string' ? gen : String(gen ?? '');
+        generatedMessage = {
+          role: 'assistant',
+          content: textResult,
+        };
+      }
 
       if (!generatedMessage) {
         throw new Error('No response generated');
@@ -153,12 +204,22 @@ export class LLMModel extends BaseModel<LLMConfig> {
       opts?: unknown
     ) => Promise<Array<{ generated_text: string }>>;
 
+    // Derive special tokens
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const anyPipeline = this.getPipeline() as any;
+    const eosId = (anyPipeline?.tokenizer?.eos_token_id ?? anyPipeline?.model?.config?.eos_token_id) ?? 50256;
+    const padId = (anyPipeline?.tokenizer?.pad_token_id ?? anyPipeline?.model?.config?.pad_token_id) ?? eosId;
+
     const generationOptions = {
       max_new_tokens: options.maxTokens || this.config.maxTokens || 256,
       temperature: options.temperature ?? this.config.temperature ?? 0.7,
       top_p: options.topP ?? this.config.topP ?? 0.9,
       do_sample: true,
-    };
+      use_cache: false,
+      return_full_text: false,
+      eos_token_id: eosId,
+      pad_token_id: padId,
+    } as Record<string, unknown>;
 
     try {
       const result = await pipeline(prompt, generationOptions);
@@ -180,12 +241,13 @@ export class LLMModel extends BaseModel<LLMConfig> {
     const { TextStreamer } = await getTransformers();
 
     const pipeline = this.getPipeline() as {
-      (input: Message[], opts?: unknown): Promise<
-        Array<{ generated_text: Message[] }>
+      (input: Message[] | string, opts?: unknown): Promise<
+        Array<{ generated_text: Message[] | string }>
       >;
-      tokenizer: {
-        encode?: (text: string) => { length: number };
-      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tokenizer: any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      model?: any;
     };
 
     const messageArray: Message[] = Array.isArray(messages)
@@ -199,6 +261,23 @@ export class LLMModel extends BaseModel<LLMConfig> {
       });
     }
 
+    // Check if tokenizer has chat_template
+    const hasChatTemplate = pipeline.tokenizer && 
+      'chat_template' in pipeline.tokenizer && 
+      pipeline.tokenizer.chat_template;
+
+    // Prepare input based on model capabilities
+    let input: string | Message[];
+    if (hasChatTemplate) {
+      input = messageArray;
+    } else {
+      // Convert to simple text for models without chat_template
+      input = messageArray
+        .filter(msg => msg.role !== 'system') // Skip system messages for simple models
+        .map(msg => msg.content)
+        .join('\n');
+    }
+
     const tokens: string[] = [];
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -209,16 +288,23 @@ export class LLMModel extends BaseModel<LLMConfig> {
       },
     });
 
+    const eosId = (pipeline.tokenizer?.eos_token_id ?? pipeline.model?.config?.eos_token_id) ?? 50256;
+    const padId = (pipeline.tokenizer?.pad_token_id ?? pipeline.model?.config?.pad_token_id) ?? eosId;
+
     const generationOptions = {
       max_new_tokens: options.maxTokens || this.config.maxTokens || 256,
       temperature: options.temperature ?? this.config.temperature ?? 0.7,
       top_p: options.topP ?? this.config.topP ?? 0.9,
       do_sample: true,
       streamer,
-    };
+      use_cache: false,
+      return_full_text: false,
+      eos_token_id: eosId,
+      pad_token_id: padId,
+    } as Record<string, unknown>;
 
     // Start generation
-    const generationPromise = pipeline(messageArray, generationOptions);
+    const generationPromise = pipeline(input, generationOptions);
 
     // Yield tokens as they arrive
     let lastIndex = 0;
