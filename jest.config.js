@@ -12,6 +12,11 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  // Ignore integration tests in default run
-  testPathIgnorePatterns: ['tests/integration/'],
+  // Ignore integration and e2e tests in default run
+  testPathIgnorePatterns: [
+    'tests/integration/',
+    'tests/e2e/',
+    '/node_modules/',
+    '\\.e2e\\.test\\.ts$'
+  ],
 };

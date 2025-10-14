@@ -6,13 +6,20 @@ This directory contains both unit tests and integration tests for the transforme
 
 ```
 tests/
-├── unit/                    # Unit tests with mocks
+├── unit/                    # Unit tests (pure logic)
 │   ├── *.test.ts           # Individual unit tests
 │   └── ...
 ├── integration/             # Real integration tests
 │   ├── *.integration.test.ts
 │   ├── setup.ts            # Integration test setup
 │   └── ...
+├── e2e/                     # Browser E2E tests
+│   ├── *.e2e.test.ts       # Playwright tests
+│   ├── server.js           # Test server
+│   └── README.md
+├── fixtures/                # Test fixtures
+│   ├── audio/              # WAV files for STT
+│   └── expected-outputs.json
 └── README.md               # This file
 ```
 
@@ -36,13 +43,23 @@ Integration tests actually load and test real Transformers.js models. They are m
 
 ⚠️ **Integration tests may take 5-15 minutes** and require internet connection to download models.
 
+### E2E Tests (Browser, Playwright)
+
+```bash
+npm run test:e2e
+```
+
+End-to-end tests for Web Workers in real browser environment using Playwright.
+
+⚠️ **Requires Playwright installation**: `npx playwright install chromium`
+
 ### All Tests
 
 ```bash
 npm run test:all
 ```
 
-Runs both unit and integration tests.
+Runs both unit and integration tests (E2E tests separate).
 
 ## Test Categories
 
@@ -61,6 +78,17 @@ Runs both unit and integration tests.
 - **AIProvider.integration.test.ts** - Real model loading and generation
 - **OpenAIAdapter.integration.test.ts** - OpenAI API compatibility with real models
 - **LangChainAdapter.integration.test.ts** - LangChain integration with real models
+- **Embeddings.integration.test.ts** - Text embeddings, similarity, semantic search
+- **STT.integration.test.ts** - Speech-to-text (Whisper) with multi-language support
+- **TTS.integration.test.ts** - Text-to-speech synthesis with roundtrip validation
+- **Performance.integration.test.ts** - Concurrent requests, cache, memory, batch processing
+- **Scenarios.integration.test.ts** - Real-world workflows (RAG, multi-turn, multimodal)
+- **EdgeCases.integration.test.ts** - Error handling, boundary conditions, edge cases
+- **Config.integration.test.ts** - Configuration options, dtype, device, model switching
+
+### E2E Tests (`tests/e2e/`)
+
+- **Workers.e2e.test.ts** - Web Workers in browser (non-blocking UI, worker pool, streaming)
 
 ## Writing Tests
 

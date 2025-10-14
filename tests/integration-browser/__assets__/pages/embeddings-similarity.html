@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>embeddings-similarity</title>
+  <link rel="stylesheet" href="/tests/integration-browser/__assets__/common.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "@huggingface/transformers": "/node_modules/@huggingface/transformers/dist/transformers.min.js",
+        "onnxruntime-web": "/node_modules/onnxruntime-web/dist/ort.min.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="root" class="panel">
+    <h2>Embeddings Similarity</h2>
+
+    <div class="status-row">
+      <button class="btn" data-testid="start-warmup">Warmup Embeddings</button>
+      <div data-testid="status">idle</div>
+      <div data-testid="file">-</div>
+      <div data-testid="progress">0</div>
+    </div>
+
+    <div class="progressbar">
+      <div class="progressbar__fill"></div>
+    </div>
+
+    <div style="margin-top:12px; display:grid; gap:8px;">
+      <input id="txt1" placeholder="Text 1" style="padding:8px;" />
+      <input id="txt2" placeholder="Text 2" style="padding:8px;" />
+      <button class="btn" id="compare-btn">Compare</button>
+      <div>Similarity: <span id="sim">-</span></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initProviderWithUI } from '/tests/integration-browser/__assets__/common.js';
+
+    const provider = await initProviderWithUI({
+      modality: 'embedding',
+      config: { model: 'Xenova/all-MiniLM-L6-v2' }
+    });
+
+    const b = document.getElementById('compare-btn');
+    const t1 = document.getElementById('txt1');
+    const t2 = document.getElementById('txt2');
+    const out = document.getElementById('sim');
+    b?.addEventListener('click', async () => {
+      try {
+        const e = await provider.embed([
+          t1?.value || 'I love programming',
+          t2?.value || 'Coding is fun'
+        ]);
+        const a = e[0];
+        const b = e[1];
+        // cosine
+        const dot = a.reduce((s, v, i) => s + v * b[i], 0);
+        const na = Math.sqrt(a.reduce((s, v) => s + v * v, 0));
+        const nb = Math.sqrt(b.reduce((s, v) => s + v * v, 0));
+        const sim = dot / (na * nb);
+        out.textContent = sim.toFixed(4);
+      } catch (e) {
+        out.textContent = 'Error';
+        console.error(e);
+      }
+    });
+  </script>
+</body>
+</html>
+
+

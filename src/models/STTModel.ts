@@ -4,6 +4,7 @@
 
 import type { STTConfig, STTOptions } from '../core/types';
 import { BaseModel } from './BaseModel';
+import { audioConverter, type AudioInput } from '../utils/AudioConverter';
 
 // Dynamically import Transformers.js
 let transformersModule: typeof import('@huggingface/transformers') | null = null;
@@ -71,17 +72,20 @@ export class STTModel extends BaseModel<STTConfig> {
    * Transcribe audio to text
    */
   async transcribe(
-    audio: Blob | Float32Array | string,
+    audio: AudioInput, // Use AudioConverter type
     options: STTOptions = {}
   ): Promise<string> {
     await this.ensureLoaded();
 
     const pipeline = this.getPipeline() as (
-      input: Blob | Float32Array | string,
+      input: Float32Array,
       opts?: unknown
     ) => Promise<{ text: string }>;
 
     try {
+      // Convert audio to Float32Array using AudioConverter
+      const audioData = await audioConverter.toFloat32Array(audio, 16000);
+
       const transcriptionOptions: {
         language?: string;
         task?: string;
@@ -100,7 +104,7 @@ export class STTModel extends BaseModel<STTConfig> {
         transcriptionOptions.return_timestamps = true;
       }
 
-      const result = await pipeline(audio, transcriptionOptions);
+      const result = await pipeline(audioData, transcriptionOptions);
 
       return result.text;
     } catch (error) {

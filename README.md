@@ -548,10 +548,296 @@ npm run build
 # Run tests
 npm test
 
+# Run specific test suites
+npm run test:unit              # Fast unit tests (Jest)
+npm run test:integration       # Integration tests in browser (Playwright)
+npm run test:e2e              # End-to-end tests (Playwright)
+npm run test:all              # All tests
+
+# Debug tests
+npm run test:integration:ui    # Visual test runner
+npm run test:integration:headed # With visible browser
+npm run test:watch            # Watch mode for unit tests
+
 # Run examples
 node examples/chat-basic.js
 node examples/multimodal.js
 node examples/agent-integration.js
+```
+
+## Testing
+
+This project uses a comprehensive 3-tier testing strategy:
+
+### 🧪 **Unit Tests** (Jest + Node.js)
+- **Location:** `tests/unit/`
+- **Purpose:** Fast, isolated logic tests
+- **Run:** `npm run test:unit`
+- **Characteristics:** No real AI models, <5 seconds
+
+### 🌐 **Integration Tests** (Playwright + Browser)
+- **Location:** `tests/integration-browser/`
+- **Purpose:** Real AI models in browser environment
+- **Run:** `npm run test:integration`
+- **Why browser?** 
+  - ✅ Solves ONNX Runtime Float32Array errors
+  - ✅ Native AudioContext for STT
+  - ✅ WebAssembly backend (onnxruntime-web)
+  - ✅ Production-like environment
+
+#### Build required for browser tests
+
+Browserowe testy integracyjne ładują bibliotekę poprzez ESM import z pliku `dist/index.js`:
+
+```html
+<script type="module">
+  const { createAIProvider } = await import('/dist/index.js');
+  // ...
+</script>
+```
+
+Dlatego przed uruchomieniem tych testów należy wykonać build, aby katalog `dist/` był aktualny:
+
+```bash
+npm run build
+ls -la dist/
+```
+
+Serwer testowy uruchamiany przez Playwright'a serwuje stronę `tests/integration-browser/test-page.html`, która importuje `dist/index.js`. Jeśli build nie zostanie wykonany, import w przeglądarce zakończy się błędem.
+
+#### Ręczne uruchomienie serwera przeglądarkowego (bez Playwright)
+
+Jeśli chcesz lokalnie zobaczyć UI ładowania i progres modelu:
+
+```bash
+# 1) Zbuduj bibliotekę
+npm run build
+
+# 2) Uruchom serwer ESM dla stron przeglądarkowych
+npm run serve:browser
+```
+
+Następnie otwórz w przeglądarce adres:
+
+```
+http://localhost:3001/tests/integration-browser/__assets__/index.html
+```
+
+Na stronie zobaczysz panel statusu. Kliknij przycisk Start (data-testid="start-warmup") i obserwuj pola status/progress/file. Możesz też wywołać ręcznie w konsoli przeglądarki:
+
+```js
+window.startWarmup()
+```
+
+Diagnozowanie białej strony:
+- Sprawdź, czy `dist/index.js` istnieje (po buildzie) – `ls -la dist/index.js`
+- Sprawdź w zakładce Network, czy `/dist/index.js` zwraca 200
+- Upewnij się, że serwer działa – `curl -I http://localhost:3001/`
+- Jeśli port zajęty – ubij stary proces: `pkill -f "tests/integration-browser/server.js"` i uruchom serwer ponownie
+
+#### Index stron testowych (browser test pages)
+
+Przeglądarkowe testy mają teraz indeks stron z UI i paskiem progresu ładowania modelu:
+
+- Index: `http://localhost:3001/` → `tests/integration-browser/__assets__/index.html`
+- Strony (ESM apps): `tests/integration-browser/__app__/*/index.html`
+- Wspólne assety: `tests/integration-browser/__assets__/common.css`, `common.js`
+
+Dodanie nowej aplikacji testowej (ESM):
+
+1. Utwórz katalog `tests/integration-browser/__app__/your-app/`
+2. Dodaj `index.html` z import mapą i `<script type="module" src="./main.js"></script>`
+3. W `main.js` zaimportuj `../__assets__/common.js` i wywołaj `initProviderWithUI`
+4. Dodaj link w `__assets__/index.html` z `data-test-link`
+
+Automatyczny test przeglądarkowy iterujący strony:
+- Plik: `tests/integration-browser/Pages.browser.test.ts`
+- Działanie: wchodzi na index, zbiera linki i dla każdej strony sprawdza przejście statusu `downloading/loading` → `ready` oraz progres 100%
+
+### 🎭 **E2E Tests** (Playwright + Browser)
+- **Location:** `tests/e2e/`
+- **Purpose:** Full user workflows with Web Workers
+- **Run:** `npm run test:e2e`
+
+### 🚀 **Quick Testing Commands**
+
+```bash
+# Run all tests
+npm run test:all
+
+# Run specific test suites
+npm run test:unit              # Fast unit tests
+npm run test:integration       # Browser integration tests
+npm run test:e2e              # End-to-end tests
+
+# Debug and development
+npm run test:integration:ui    # Visual test runner (recommended)
+npm run test:integration:headed # With visible browser
+npm run test:watch            # Watch mode for unit tests
+
+# Run specific tests
+npm run test:integration -- --grep "should load LLM model"
+npm run test:unit -- --testNamePattern="should cache models"
+```
+
+### 🔧 **Test Architecture**
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Playwright    │    │   Browser        │    │   AI Models     │
+│   (Node.js)     │◄──►│   (Chromium)     │◄──►│   (Transformers)│
+│                 │    │                  │    │                 │
+│ - Test logic    │    │ - WebAssembly    │    │ - GPT-2/Xenova  │
+│ - Assertions    │    │ - AudioContext   │    │ - Whisper       │
+│ - Page control  │    │ - WebGL          │    │ - SpeechT5      │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+```
+
+### 📊 **Test Coverage**
+
+Coverage and suite sizes (example values, update via CI):
+- Unit Tests: 31 tests ✅
+- Integration Tests: ~80+ tests (Browser-based)
+- E2E Tests: ~6 tests (Web Workers)
+
+### 🐛 **Debugging Tests**
+
+1. **Visual Debugging:**
+   ```bash
+   npm run test:integration:ui
+   ```
+   - Step-through debugging
+   - Browser DevTools access
+   - Real-time console logs
+
+2. **Browser Debugging:**
+   ```bash
+   npm run test:integration:headed
+   ```
+   - See what happens in browser
+   - Manual DevTools inspection
+
+3. **Trace Analysis:**
+   ```bash
+   npm run test:integration -- --trace=on
+   npx playwright show-trace test-results/trace.zip
+   ```
+
+### ⚠️ **Important Notes**
+
+- **Integration tests** require internet connection (model downloads)
+- **Test timeouts** are set to 5 minutes (model loading)
+- **Browser tests** run sequentially for stability
+- **Models are cached** between test runs
+ - **Build required for browser tests**: upewnij się, że `dist/` istnieje i jest aktualny (`npm run build`)
+
+### 🔧 **Troubleshooting**
+
+#### **Common Issues:**
+
+1. **Tests timeout or hang:**
+   ```bash
+   # Check if integration server is running
+   curl http://localhost:3001/
+   
+   # Restart server if needed
+   pkill -f "node tests/integration-browser/server.js"
+   node tests/integration-browser/server.js &
+   ```
+
+2. **Browser tests fail to load:**
+   ```bash
+   # Ensure project is built
+   npm run build
+   
+   # Check if dist files exist
+   ls -la dist/
+   ```
+
+3. **Port 3001 zajęty (EADDRINUSE) podczas integracji w przeglądarce):**
+   ```bash
+   # Zwolnij poprzedni serwer testowy
+   pkill -f "node tests/integration-browser/server.js"
+   # Uruchom test ponownie
+   npm run test:integration
+   ```
+
+3. **Model loading errors:**
+   ```bash
+   # Clear model cache
+   rm -rf ~/.cache/huggingface/
+   
+   # Check internet connection
+   curl https://huggingface.co/
+   ```
+
+4. **Playwright browser issues:**
+   ```bash
+   # Reinstall browsers
+   npx playwright install chromium
+   
+   # Update Playwright
+   npm update @playwright/test
+   ```
+
+#### **Performance Optimization:**
+
+```bash
+# Run tests in parallel (faster but less stable)
+npm run test:integration -- --workers=4
+
+# Skip slow tests during development
+npm run test:integration -- --grep "should handle long audio" --invert
+
+# Use cached models (faster subsequent runs)
+# Models are automatically cached in ~/.cache/huggingface/
+```
+
+### 🚀 **CI/CD Integration**
+
+#### **GitHub Actions Example:**
+
+```yaml
+name: Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - run: npm ci
+      - run: npm run build
+      
+      # Unit tests (fast)
+      - run: npm run test:unit
+      
+      # Integration tests (with retries)
+      - run: npm run test:integration -- --retries=2
+      
+      # E2E tests (optional, slower)
+      - run: npm run test:e2e -- --retries=1
+```
+
+#### **Local Development Workflow:**
+
+```bash
+# 1. Quick feedback loop
+npm run test:unit -- --watch
+
+# 2. Test specific functionality
+npm run test:integration -- --grep "LLM"
+
+# 3. Full test suite before commit
+npm run test:all
+
+# 4. Debug failing tests
+npm run test:integration:ui
 ```
 
 ## Performance Tips
@@ -592,6 +878,9 @@ However, we recommend migrating to the new `AIProvider` API.
 - [x] React hooks
 - [x] Vue composables
 - [x] LangChain adapter
+- [x] Comprehensive testing suite
+- [x] Browser-based integration tests
+- [x] E2E testing with Playwright
 
 ### Phase 3 (Planned)
 - [ ] Advanced streaming (token-by-token to UI)

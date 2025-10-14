@@ -188,6 +188,12 @@
                     disabled
                 />
                 <button id="sendBtn" disabled>Wyślij</button>
+                <button id="warmup-btn" style="margin-left: 10px;">Warmup</button>
+            </div>
+            <div style="margin-top: 10px;">
+                <label>
+                    <input type="checkbox" id="streaming-mode" /> Streaming mode
+                </label>
             </div>
         </div>
     </div>
@@ -198,6 +204,7 @@
         const chatContainer = document.getElementById('chatContainer');
         const userInput = document.getElementById('userInput');
         const sendBtn = document.getElementById('sendBtn');
+        const warmupBtn = document.getElementById('warmup-btn');
         
         const workersTotal = document.getElementById('workersTotal');
         const workersAvailable = document.getElementById('workersAvailable');
@@ -242,15 +249,22 @@
             addMessage('✅ Model załadowany! Możesz zacząć rozmowę.', 'assistant');
             userInput.disabled = false;
             sendBtn.disabled = false;
+            warmupBtn.disabled = true;
             userInput.focus();
+            window.isReady = true;
         });
         
         provider.on('error', (data) => {
             addMessage('❌ Błąd: ' + data.error.message, 'assistant');
         });
         
-        // Warmup
-        provider.warmup();
+        // Warmup button handler
+        warmupBtn.addEventListener('click', () => {
+            warmupBtn.disabled = true;
+            warmupBtn.textContent = 'Loading...';
+            addMessage('🔄 Ładowanie modelu...', 'assistant');
+            provider.warmup();
+        });
         
         // Send message
         async function sendMessage() {

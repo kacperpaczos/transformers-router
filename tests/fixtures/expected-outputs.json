@@ -1,0 +1,36 @@
+{
+  "hello-world-en.wav": {
+    "text": "Hello world, this is a test.",
+    "keywords": ["hello", "world", "test"],
+    "language": "en",
+    "minConfidence": 0.7,
+    "duration_seconds": 3
+  },
+  "polish-test.wav": {
+    "text": "Cześć, to jest test automatyczny.",
+    "keywords": ["cześć", "test", "automatyczny"],
+    "language": "pl",
+    "minConfidence": 0.6,
+    "duration_seconds": 3
+  },
+  "german-test.wav": {
+    "text": "Hallo, das ist ein automatischer Test.",
+    "keywords": ["hallo", "automatischer", "test"],
+    "language": "de",
+    "minConfidence": 0.6,
+    "duration_seconds": 3
+  },
+  "long-audio-pl.wav": {
+    "keywords": ["długi", "test", "audio"],
+    "language": "pl",
+    "minDuration": 30,
+    "duration_seconds": 60
+  },
+  "sample.wav": {
+    "text": "",
+    "keywords": [],
+    "isSilence": true,
+    "duration_seconds": 1
+  }
+}
+

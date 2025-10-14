@@ -137,3 +137,13 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+/playwright-integration-report/
+/playwright-integration-results.json
+
+# Test cache
+.cache/test/

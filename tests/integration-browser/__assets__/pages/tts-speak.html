@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>tts-speak</title>
+  <link rel="stylesheet" href="/tests/integration-browser/__assets__/common.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "@huggingface/transformers": "/node_modules/@huggingface/transformers/dist/transformers.min.js",
+        "onnxruntime-web": "/node_modules/onnxruntime-web/dist/ort.min.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="root" class="panel">
+    <h2>TTS Speak</h2>
+
+    <div class="status-row">
+      <button class="btn" data-testid="start-warmup">Warmup TTS</button>
+      <div data-testid="status">idle</div>
+      <div data-testid="file">-</div>
+      <div data-testid="progress">0</div>
+    </div>
+
+    <div class="progressbar">
+      <div class="progressbar__fill"></div>
+    </div>
+
+    <div style="margin-top:12px; display:flex; gap:8px;">
+      <input id="tts-text" placeholder="Text to speak" style="flex:1; padding:8px;" />
+      <button class="btn" id="speak-btn">Speak</button>
+    </div>
+    <audio id="audio" controls style="margin-top:12px;"></audio>
+  </div>
+
+  <script type="module">
+    import { initProviderWithUI } from '/tests/integration-browser/__assets__/common.js';
+
+    const provider = await initProviderWithUI({
+      modality: 'tts',
+      config: { model: 'Xenova/speecht5_tts' }
+    });
+
+    const input = document.getElementById('tts-text');
+    const btn = document.getElementById('speak-btn');
+    const audio = document.getElementById('audio');
+    btn?.addEventListener('click', async () => {
+      try {
+        const text = input?.value || 'Hello from Transformers Router';
+        const blob = await provider.speak(text);
+        const url = URL.createObjectURL(blob);
+        audio.src = url;
+        await audio.play().catch(() => {});
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  </script>
+</body>
+</html>
+
+
