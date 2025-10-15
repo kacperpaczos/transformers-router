@@ -17,14 +17,144 @@
 <body>
   <div id="root" class="panel">
     <h1>Browser Test Pages</h1>
-    <p>Wybierz podstronę testową:</p>
-    <div class="links">
+    <p>Wybierz podstronę testową (kliknij, aby podglądnąć poniżej; Ctrl/Cmd-klik otworzy w nowej karcie):</p>
+
+    <input id="search" type="search" placeholder="Szukaj aplikacji..." aria-label="Szukaj aplikacji" />
+
+    <div class="links" id="app-links">
       <a data-test-link href="/tests/integration-browser/__app__/llm-progress/index.html">llm-progress</a>
+      <a data-test-link href="/tests/integration-browser/__app__/llm-chat-history/index.html">llm-chat-history</a>
+      <a data-test-link href="/tests/integration-browser/__app__/llm-streaming/index.html">llm-streaming</a>
+      <a data-test-link href="/tests/integration-browser/__app__/llm-completion/index.html">llm-completion</a>
+      <a data-test-link href="/tests/integration-browser/__app__/llm-parameters/index.html">llm-parameters</a>
+      <a data-test-link href="/tests/integration-browser/__app__/llm-system-prompt/index.html">llm-system-prompt</a>
+      <a data-test-link href="/tests/integration-browser/__app__/llm-empty-input/index.html">llm-empty-input</a>
+      <a data-test-link href="/tests/integration-browser/__app__/llm-token-limits/index.html">llm-token-limits</a>
       <a data-test-link href="/tests/integration-browser/__app__/stt-transcribe/index.html">stt-transcribe</a>
       <a data-test-link href="/tests/integration-browser/__app__/tts-speak/index.html">tts-speak</a>
       <a data-test-link href="/tests/integration-browser/__app__/embeddings-similarity/index.html">embeddings-similarity</a>
+      <a data-test-link href="/tests/integration-browser/__app__/provider/index.html">provider</a>
+      <a data-test-link href="/tests/integration-browser/__app__/stt-from-url/index.html">stt-from-url</a>
+      <a data-test-link href="/tests/integration-browser/__app__/stt-from-blob/index.html">stt-from-blob</a>
+      <a data-test-link href="/tests/integration-browser/__app__/stt-from-float32/index.html">stt-from-float32</a>
+      <a data-test-link href="/tests/integration-browser/__app__/stt-languages/index.html">stt-languages</a>
+      <a data-test-link href="/tests/integration-browser/__app__/stt-timestamps/index.html">stt-timestamps</a>
+      <a data-test-link href="/tests/integration-browser/__app__/tts-formats/index.html">tts-formats</a>
+      <a data-test-link href="/tests/integration-browser/__app__/tts-long-text/index.html">tts-long-text</a>
+      <a data-test-link href="/tests/integration-browser/__app__/tts-special-chars/index.html">tts-special-chars</a>
+      <a data-test-link href="/tests/integration-browser/__app__/embedding-single/index.html">embedding-single</a>
+      <a data-test-link href="/tests/integration-browser/__app__/embedding-batch/index.html">embedding-batch</a>
+      <a data-test-link href="/tests/integration-browser/__app__/embedding-find-similar/index.html">embedding-find-similar</a>
+      <a data-test-link href="/tests/integration-browser/__app__/embedding-pooling/index.html">embedding-pooling</a>
+      <a data-test-link href="/tests/integration-browser/__app__/lifecycle-warmup/index.html">lifecycle-warmup</a>
+      <a data-test-link href="/tests/integration-browser/__app__/lifecycle-warmup-all/index.html">lifecycle-warmup-all</a>
+      <a data-test-link href="/tests/integration-browser/__app__/lifecycle-unload/index.html">lifecycle-unload</a>
+      <a data-test-link href="/tests/integration-browser/__app__/lifecycle-multiple-providers/index.html">lifecycle-multiple-providers</a>
+      <a data-test-link href="/tests/integration-browser/__app__/lifecycle-dispose/index.html">lifecycle-dispose</a>
+      <a data-test-link href="/tests/integration-browser/__app__/events-progress/index.html">events-progress</a>
+      <a data-test-link href="/tests/integration-browser/__app__/events-error/index.html">events-error</a>
+      <a data-test-link href="/tests/integration-browser/__app__/events-lifecycle/index.html">events-lifecycle</a>
+      <a data-test-link href="/tests/integration-browser/__app__/config-update/index.html">config-update</a>
+      <a data-test-link href="/tests/integration-browser/__app__/config-multiple-modalities/index.html">config-multiple-modalities</a>
+      <a data-test-link href="/tests/integration-browser/__app__/vue-use-provider/index.html">vue-use-provider</a>
+      <a data-test-link href="/tests/integration-browser/__app__/vue-use-chat/index.html">vue-use-chat</a>
+      <a data-test-link href="/tests/integration-browser/__app__/vue-chat-app/index.html">vue-chat-app</a>
+      <a data-test-link href="/tests/integration-browser/__app__/vue-lifecycle/index.html">vue-lifecycle</a>
+      <a data-test-link href="/tests/integration-browser/__app__/react-use-provider/index.html">react-use-provider</a>
+      <a data-test-link href="/tests/integration-browser/__app__/react-use-chat/index.html">react-use-chat</a>
+      <a data-test-link href="/tests/integration-browser/__app__/react-chat-app/index.html">react-chat-app</a>
+      <a data-test-link href="/tests/integration-browser/__app__/react-lifecycle/index.html">react-lifecycle</a>
+      <a data-test-link href="/tests/integration-browser/__app__/multimodal-stt-llm/index.html">multimodal-stt-llm</a>
+      <a data-test-link href="/tests/integration-browser/__app__/multimodal-llm-tts/index.html">multimodal-llm-tts</a>
+      <a data-test-link href="/tests/integration-browser/__app__/multimodal-full/index.html">multimodal-full</a>
+      <a data-test-link href="/tests/integration-browser/__app__/performance-metrics/index.html">performance-metrics</a>
+      <a data-test-link href="/tests/integration-browser/__app__/performance-concurrent/index.html">performance-concurrent</a>
+      <a data-test-link href="/tests/integration-browser/__app__/performance-cache/index.html">performance-cache</a>
+      <a data-test-link href="/tests/integration-browser/__app__/error-invalid-config/index.html">error-invalid-config</a>
+      <a data-test-link href="/tests/integration-browser/__app__/error-model-not-found/index.html">error-model-not-found</a>
+      <a data-test-link href="/tests/integration-browser/__app__/error-network/index.html">error-network</a>
+      <a data-test-link href="/tests/integration-browser/__app__/error-invalid-input/index.html">error-invalid-input</a>
+      <a data-test-link href="/tests/integration-browser/__app__/worker-llm/index.html">worker-llm</a>
+      <a data-test-link href="/tests/integration-browser/__app__/adapter-openai/index.html">adapter-openai</a>
+      <a data-test-link href="/tests/integration-browser/__app__/adapter-langchain/index.html">adapter-langchain</a>
+    </div>
+
+    <div class="viewer" id="viewer" style="margin-top:16px; display:none;">
+      <div class="viewer__toolbar">
+        <span data-testid="current-app" id="current-app">-</span>
+        <button class="btn" id="open-new" type="button">Otwórz w nowej karcie</button>
+        <button class="btn" id="reload-frame" type="button">Przeładuj</button>
+        <button class="btn" id="clear-frame" type="button">Zamknij podgląd</button>
+      </div>
+      <iframe id="app-frame" title="Podgląd aplikacji testowej" src="" style="width:100%; height:600px; border:1px solid #e5e7eb; border-radius:8px; background:#fff"></iframe>
     </div>
   </div>
+  <script type="module">
+    // Umożliwia Playwrightowi wykrycie gotowości strony głównej
+    window.testReady = true;
+
+    const linksContainer = document.getElementById('app-links');
+    const frame = document.getElementById('app-frame');
+    const viewer = document.getElementById('viewer');
+    const currentApp = document.getElementById('current-app');
+    const openNew = document.getElementById('open-new');
+    const reloadFrame = document.getElementById('reload-frame');
+    const clearFrame = document.getElementById('clear-frame');
+    const search = document.getElementById('search');
+
+    function updateQuery(param, value) {
+      const params = new URLSearchParams(location.search);
+      if (value == null || value === '') params.delete(param); else params.set(param, value);
+      const q = params.toString();
+      history.replaceState(null, '', location.pathname + (q ? ('?' + q) : ''));
+    }
+
+    function loadApp(url) {
+      if (!frame || !viewer) return;
+      frame.src = url;
+      viewer.style.display = 'block';
+      if (currentApp) currentApp.textContent = url;
+      if (openNew) openNew.onclick = () => window.open(url, '_blank');
+      updateQuery('app', url);
+    }
+
+    linksContainer?.addEventListener('click', (e) => {
+      const target = e.target;
+      // @ts-ignore - przeglądarka
+      const a = target && target.closest ? target.closest('a[data-test-link]') : null;
+      if (!a) return;
+      if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return; // pozwól na nowe karty
+      e.preventDefault();
+      const url = a.getAttribute('href');
+      if (url) loadApp(url);
+    });
+
+    clearFrame?.addEventListener('click', () => {
+      if (frame) frame.src = '';
+      if (viewer) viewer.style.display = 'none';
+      if (currentApp) currentApp.textContent = '-';
+      updateQuery('app', null);
+    });
+
+    reloadFrame?.addEventListener('click', () => {
+      // @ts-ignore - dostęp do contentWindow
+      frame?.contentWindow?.location?.reload();
+    });
+
+    search?.addEventListener('input', () => {
+      const q = (search.value || '').toLowerCase();
+      const items = linksContainer?.querySelectorAll('a[data-test-link]') || [];
+      items.forEach((el) => {
+        const text = (el.textContent || '').toLowerCase();
+        el.style.display = text.includes(q) ? '' : 'none';
+      });
+    });
+
+    // Auto-load na podstawie query param
+    const urlParams = new URLSearchParams(location.search);
+    const appUrl = urlParams.get('app');
+    if (appUrl) loadApp(appUrl);
+  </script>
 </body>
 </html>
 
