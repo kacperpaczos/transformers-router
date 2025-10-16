@@ -6,7 +6,7 @@ const { OpenAIAdapter } = await import('/dist/adapters/OpenAIAdapter.js');
 const run = document.getElementById('run');
 const out = document.getElementById('out');
 
-const provider = createAIProvider({ llm: { model: 'Xenova/gpt2', device: 'wasm', dtype: 'fp32', maxTokens: 10 } });
+const provider = createAIProvider({ llm: { model: 'onnx-community/Qwen2.5-0.5B-Instruct', device: 'wasm', dtype: 'q4', maxTokens: 10 } });
 const adapter = new OpenAIAdapter(provider);
 
 window.testReady = true;

@@ -4,7 +4,7 @@ import { initProviderWithUI } from '../../__assets__/common.js';
 
 const provider = await initProviderWithUI({
   modality: 'llm',
-  config: { model: 'Xenova/gpt2', device: 'wasm', dtype: 'fp32', maxTokens: 20 }
+  config: { model: 'onnx-community/Qwen2.5-0.5B-Instruct', device: 'wasm', dtype: 'q4', maxTokens: 20 }
 });
 
 const input = document.getElementById('input');

@@ -4,7 +4,7 @@ import { initProviderWithUI } from '../../__assets__/common.js';
 
 const provider = await initProviderWithUI({
   modality: 'llm',
-  config: { model: 'Xenova/gpt2', device: 'wasm', dtype: 'fp32', maxTokens: 40 }
+  config: { model: 'onnx-community/Qwen2.5-0.5B-Instruct', device: 'wasm', dtype: 'q4', maxTokens: 40 }
 });
 
 const prompt = document.getElementById('prompt');
@@ -15,9 +15,9 @@ btn?.addEventListener('click', async () => {
   const p = prompt?.value || 'The quick brown fox';
   try {
     const text = await provider.complete(p);
-    out.textContent = text;
+    window.ui?.setOutputText?.(text);
   } catch (e) {
-    out.textContent = 'Error: ' + (e?.message || String(e));
+    window.ui?.setOutputText?.('Error: ' + (e?.message || String(e)));
   }
 });
 

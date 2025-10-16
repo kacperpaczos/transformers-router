@@ -1,4 +1,62 @@
+function attachToolbar() {
+  const root = document.getElementById('root');
+  if (!root) return;
+
+  // Avoid duplicate toolbar
+  if (root.querySelector('.toolbar')) return;
+
+  const bar = document.createElement('div');
+  bar.className = 'toolbar';
+  bar.style.display = 'flex';
+  bar.style.gap = '8px';
+  bar.style.marginBottom = '8px';
+
+  const backBtn = document.createElement('button');
+  backBtn.className = 'btn';
+  backBtn.textContent = 'Back';
+  backBtn.addEventListener('click', () => {
+    window.location.href = '/tests/integration-browser/__assets__/index.html';
+  });
+
+  const reloadBtn = document.createElement('button');
+  reloadBtn.className = 'btn';
+  reloadBtn.textContent = 'Reload';
+  reloadBtn.addEventListener('click', () => window.location.reload());
+
+  bar.appendChild(backBtn);
+  bar.appendChild(reloadBtn);
+  root.insertBefore(bar, root.firstChild);
+}
+
+function ensureUIHelpers() {
+  if (!window.ui) {
+    window.ui = {};
+  }
+
+  // Render text into a standard output area
+  window.ui.setOutputText = (text) => {
+    const el = document.querySelector('[data-testid="llm-output"], [data-testid="stt-text"], #transcription');
+    if (el) el.textContent = text ?? '';
+  };
+
+  // Render audio blob into standard audio element and expose size
+  window.ui.setOutputAudio = (blob) => {
+    const audio = document.querySelector('[data-testid="tts-audio"], audio#audio');
+    if (audio && blob instanceof Blob) {
+      const url = URL.createObjectURL(blob);
+      // @ts-ignore
+      audio.src = url;
+    }
+    const sizeEl = document.querySelector('[data-testid="tts-size"]');
+    if (sizeEl && blob instanceof Blob) {
+      sizeEl.textContent = String(blob.size);
+    }
+  };
+}
+
 export async function initProviderWithUI({ modality = 'llm', config }) {
+  attachToolbar();
+  ensureUIHelpers();
   const statusEl = document.querySelector('[data-testid="status"]');
   const progressEl = document.querySelector('[data-testid="progress"]');
   const fileEl = document.querySelector('[data-testid="file"]');

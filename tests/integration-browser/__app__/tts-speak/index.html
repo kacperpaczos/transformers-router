@@ -33,7 +33,8 @@
       <input id="tts-text" placeholder="Text to speak" style="flex:1; padding:8px;" />
       <button class="btn" id="speak-btn">Speak</button>
     </div>
-    <audio id="audio" controls style="margin-top:12px;"></audio>
+    <audio id="audio" data-testid="tts-audio" controls style="margin-top:12px;"></audio>
+    <div style="margin-top:8px; color:#6b7280;">Audio size: <span data-testid="tts-size">0</span> bytes</div>
   </div>
 
   <script type="module" src="./main.js"></script>

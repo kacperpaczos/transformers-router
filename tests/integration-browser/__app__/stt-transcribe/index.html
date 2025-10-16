@@ -29,9 +29,13 @@
       <div class="progressbar__fill"></div>
     </div>
 
-    <div style="margin-top:12px;">
-      <button class="btn" id="transcribe-btn">Transcribe sample</button>
-      <pre id="transcription" style="white-space: pre-wrap; margin-top:10px;"></pre>
+    <div style="margin-top:12px; display:grid; gap:8px;">
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="btn" id="transcribe-btn">Transcribe sample</button>
+        <audio id="input-audio" controls style="flex:1;"></audio>
+      </div>
+      <div>Transcription:</div>
+      <pre id="transcription" data-testid="stt-text" style="white-space: pre-wrap; margin-top:0;"></pre>
     </div>
   </div>
 

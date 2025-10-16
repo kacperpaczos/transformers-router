@@ -9,6 +9,7 @@ const b = document.getElementById('compare-btn');
 const t1 = document.getElementById('txt1');
 const t2 = document.getElementById('txt2');
 const out = document.getElementById('sim');
+const dims = document.getElementById('dims');
 b?.addEventListener('click', async () => {
   try {
     const e = await provider.embed([
@@ -22,6 +23,7 @@ b?.addEventListener('click', async () => {
     const nb = Math.sqrt(b.reduce((s, v) => s + v * v, 0));
     const sim = dot / (na * nb);
     out.textContent = sim.toFixed(4);
+    if (dims) dims.textContent = String(a.length);
   } catch (e) {
     out.textContent = 'Error';
     console.error(e);

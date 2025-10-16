@@ -116,6 +116,32 @@ const provider = createAIProvider({
 });
 ```
 
+### Browser App UI Standard (Integration-Browser)
+
+All pages under `tests/integration-browser/__app__/` follow a unified UI to ensure manual and automated verification:
+
+- Toolbar: Back (to `/tests/integration-browser/__assets__/index.html`) and Reload.
+- Status row: `data-testid="status" | "file" | "progress"` bound to provider events (`progress`, `ready`, `error`).
+- Standard helpers from `__assets__/common.js`:
+  - `window.startWarmup()` – triggers warmup for the page modality.
+  - `window.getStatus(modality)` / `window.getAllStatuses()` – query model status.
+  - `window.ui.setOutputText(text)` – renders textual outputs (LLM/STT).
+  - `window.ui.setOutputAudio(blob)` – renders audio outputs (TTS) and exposes `data-testid="tts-size"`.
+
+Modalities:
+- LLM: pages expose output in `data-testid="llm-output"`.
+- TTS: pages include `<audio controls data-testid="tts-audio">` and show blob size in `data-testid="tts-size"`.
+- STT: input audio is playable via `<audio controls>`; transcription in `data-testid="stt-text"`.
+- Embeddings: similarity and metrics exposed via `data-testid` (e.g., `emb-sim`, `emb-dims`).
+
+### Playwright Asercje (Browser)
+
+- Czekaj na `window.testReady === true`.
+- Asercje na:
+  - `status`: `downloading|loading` → `ready`.
+  - `progress`: nie-degresja, finalnie `100`.
+  - Output: `llm-output` (non-empty), `tts-size` (> 0), `stt-text` (non-empty for known samples).
+
 ## Test Models
 
 For integration tests, we use small, fast models that are suitable for testing:

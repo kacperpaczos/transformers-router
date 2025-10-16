@@ -6,7 +6,7 @@ const { LangChainLLM } = await import('/dist/adapters/LangChainAdapter.js');
 const run = document.getElementById('run');
 const out = document.getElementById('out');
 
-const provider = createAIProvider({ llm: { model: 'Xenova/gpt2', device: 'wasm', dtype: 'fp32', maxTokens: 10 } });
+const provider = createAIProvider({ llm: { model: 'onnx-community/Qwen2.5-0.5B-Instruct', device: 'wasm', dtype: 'q4', maxTokens: 10 } });
 const llm = new LangChainLLM(provider, { temperature: 0.7, maxTokens: 10 });
 
 window.testReady = true;

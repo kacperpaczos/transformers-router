@@ -5,7 +5,7 @@ window.createAIProvider = createAIProvider;
 
 await initProviderWithUI({
   modality: 'llm',
-  config: { model: 'Xenova/gpt2', dtype: 'fp32', device: 'wasm', maxTokens: 20 }
+  config: { model: 'onnx-community/Qwen2.5-0.5B-Instruct', dtype: 'q4', device: 'wasm', maxTokens: 20 }
 });
 
 
