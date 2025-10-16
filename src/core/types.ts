@@ -23,6 +23,7 @@ export interface LLMConfig {
   model: string;
   dtype?: DType;
   device?: Device;
+  performanceMode?: 'auto' | 'fast' | 'quality';
   maxTokens?: number;
   temperature?: number;
   topP?: number;
@@ -35,6 +36,7 @@ export interface TTSConfig {
   model: string;
   dtype?: DType;
   device?: Device;
+  performanceMode?: 'auto' | 'fast' | 'quality';
   speaker?: string;
   sampleRate?: number;
 }
@@ -44,6 +46,7 @@ export interface STTConfig {
   model: string;
   dtype?: DType;
   device?: Device;
+  performanceMode?: 'auto' | 'fast' | 'quality';
   language?: string;
   task?: 'transcribe' | 'translate';
 }
@@ -53,6 +56,7 @@ export interface EmbeddingConfig {
   model: string;
   dtype?: DType;
   device?: Device;
+  performanceMode?: 'auto' | 'fast' | 'quality';
   pooling?: 'mean' | 'cls';
   normalize?: boolean;
 }

@@ -10,6 +10,7 @@ import type {
   STTConfig,
   EmbeddingConfig,
   ModelStatus,
+  Device,
 } from './types';
 import { ModelCache } from './ModelCache';
 import { BaseModel } from '../models/BaseModel';
@@ -59,8 +60,22 @@ export class ModelManager {
       return model;
     }
 
+    // Auto-scaler: optionally adjust config based on capabilities and performanceMode
+    const scaledConfig = this.autoScaleConfig(modality, config);
+    if (scaledConfig !== config) {
+      try {
+        console.log('[transformers-router] autoscale', {
+          modality,
+          from: config,
+          to: scaledConfig,
+        });
+      } catch {
+        /* ignore console issues */
+      }
+    }
+
     // Create and load new model
-    const model = this.createModelInstance(modality, config);
+    const model = this.createModelInstance(modality, scaledConfig);
 
     // Create progress callback
     const progressCallback = this.progressTracker.createCallback(
@@ -73,16 +88,16 @@ export class ModelManager {
 
       // Cache the model
       const pipeline = model.getRawPipeline();
-      this.cache.set(modality, config, pipeline);
+      this.cache.set(modality, scaledConfig, pipeline);
 
       // Store in active models
       this.models.set(modality, model);
-      this.configs.set(modality, config);
+      this.configs.set(modality, scaledConfig);
 
       // Emit ready event
       this.eventEmitter.emit('ready', {
         modality,
-        model: config.model,
+        model: scaledConfig.model,
       });
 
       return model;
@@ -219,6 +234,38 @@ export class ModelManager {
       return false;
     }
     return currentConfig.model === config.model;
+  }
+
+  /**
+   * Auto-scale config: choose device/dtype/maxTokens based on capabilities
+   * Non-invasive: respects explicit user settings unless performanceMode === 'auto'
+   */
+  private autoScaleConfig(modality: Modality, config: ModelConfig): ModelConfig {
+    const cfg = config as Partial<LLMConfig & TTSConfig & STTConfig & EmbeddingConfig> & { performanceMode?: 'auto' | 'fast' | 'quality' };
+    const perfMode = cfg.performanceMode;
+    if (perfMode !== 'auto') {
+      return config;
+    }
+
+    const isBrowser = typeof navigator !== 'undefined';
+    const hasWebGPU = isBrowser && 'gpu' in navigator;
+    const cores = isBrowser ? (navigator.hardwareConcurrency || 2) : 2;
+    const targetDevice: Device | 'wasm' = hasWebGPU ? 'webgpu' : 'wasm';
+
+    const next: Partial<LLMConfig & TTSConfig & STTConfig & EmbeddingConfig> = { ...cfg };
+    if (!next.device) next.device = targetDevice as Device;
+
+    if (!next.dtype) {
+      next.dtype = 'q4';
+    }
+
+    if (modality === 'llm' && (next as LLMConfig).maxTokens == null) {
+      (next as LLMConfig).maxTokens = 20;
+    }
+
+    void cores; // reserved for future heuristics
+
+    return next as ModelConfig;
   }
 }
 

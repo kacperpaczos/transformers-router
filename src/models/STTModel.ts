@@ -62,15 +62,19 @@ export class STTModel extends BaseModel<STTConfig> {
               env.backends.onnx.wasm.simd = true;
               const cores = (typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 2) || 2;
               env.backends.onnx.wasm.numThreads = Math.min(4, Math.max(1, cores - 1));
-            } catch {}
+            } catch {
+              /* ignore WASM tuning errors */
+            }
           }
 
+          const pipelineDevice = dev === 'wasm' ? 'cpu' : (dev as 'cpu' | 'gpu' | 'webgpu');
+          console.log('[transformers-router] load STT try', { device: dev, dtype });
           this.pipeline = await pipeline(
             'automatic-speech-recognition',
             this.config.model,
             {
               dtype,
-              device: dev as unknown as 'cpu' | 'gpu' | 'webgpu',
+              device: pipelineDevice,
               progress_callback: progressCallback,
             }
           );
@@ -78,8 +82,9 @@ export class STTModel extends BaseModel<STTConfig> {
           this.loaded = true;
           lastError = null;
           break;
-        } catch (e) {
-          lastError = e instanceof Error ? e : new Error(String(e));
+        } catch (err) {
+          console.log('[transformers-router] load STT fallback', { from: dev, error: (err as Error)?.message });
+          lastError = err instanceof Error ? err : new Error(String(err));
         }
       }
 
