@@ -25,21 +25,21 @@
       <section class="category" data-category="llm">
         <h3>LLM</h3>
         <div class="links">
-          <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/llm-progress/index.html">llm-progress</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/llm-progress/index.html">Preview</button></div>
-          <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/llm-chat-history/index.html">llm-chat-history</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/llm-chat-history/index.html">Preview</button></div>
-          <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/llm-streaming/index.html">llm-streaming</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/llm-streaming/index.html">Preview</button></div>
-          <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/llm-completion/index.html">llm-completion</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/llm-completion/index.html">Preview</button></div>
-          <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/llm-parameters/index.html">llm-parameters</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/llm-parameters/index.html">Preview</button></div>
-          <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/llm-system-prompt/index.html">llm-system-prompt</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/llm-system-prompt/index.html">Preview</button></div>
-          <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/llm-empty-input/index.html">llm-empty-input</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/llm-empty-input/index.html">Preview</button></div>
-          <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/llm-token-limits/index.html">llm-token-limits</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/llm-token-limits/index.html">Preview</button></div>
+          <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/llm-progress/index.html">llm-progress</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/llm-progress/index.html">Open</button></div>
+          <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/llm-chat-history/index.html">llm-chat-history</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/llm-chat-history/index.html">Open</button></div>
+          <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/llm-streaming/index.html">llm-streaming</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/llm-streaming/index.html">Open</button></div>
+          <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/llm-completion/index.html">llm-completion</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/llm-completion/index.html">Open</button></div>
+          <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/llm-parameters/index.html">llm-parameters</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/llm-parameters/index.html">Open</button></div>
+          <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/llm-system-prompt/index.html">llm-system-prompt</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/llm-system-prompt/index.html">Open</button></div>
+          <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/llm-empty-input/index.html">llm-empty-input</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/llm-empty-input/index.html">Open</button></div>
+          <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/llm-token-limits/index.html">llm-token-limits</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/llm-token-limits/index.html">Open</button></div>
         </div>
       </section>
 
       <section class="category" data-category="stt">
         <h3>STT</h3>
         <div class="links">
-          <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/stt-transcribe/index.html">stt-transcribe</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/stt-transcribe/index.html">Preview</button></div>
+          <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/stt-transcribe/index.html">stt-transcribe</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/stt-transcribe/index.html">Open</button></div>
           <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/stt-from-url/index.html">stt-from-url</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/stt-from-url/index.html">Preview</button></div>
           <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/stt-from-blob/index.html">stt-from-blob</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/stt-from-blob/index.html">Preview</button></div>
           <div class="app-item"><a data-test-link href="/tests/integration-browser/__app__/stt-from-float32/index.html">stt-from-float32</a> <button class="btn preview" data-url="/tests/integration-browser/__app__/stt-from-float32/index.html">Preview</button></div>
@@ -173,12 +173,8 @@
     }
 
     function loadApp(url) {
-      if (!frame || !viewer) return;
-      frame.src = url;
-      viewer.style.display = 'block';
-      if (currentApp) currentApp.textContent = url;
-      if (openNew) openNew.onclick = () => window.open(url, '_blank');
-      updateQuery('app', url);
+      // Navigate to subpage instead of iframe preview
+      window.location.href = url;
     }
 
     categories?.addEventListener('click', (e) => {
@@ -192,15 +188,12 @@
     });
 
     clearFrame?.addEventListener('click', () => {
-      if (frame) frame.src = '';
-      if (viewer) viewer.style.display = 'none';
-      if (currentApp) currentApp.textContent = '-';
-      updateQuery('app', null);
+      // Go back to index
+      window.location.href = location.pathname;
     });
 
     reloadFrame?.addEventListener('click', () => {
-      // @ts-ignore
-      frame?.contentWindow?.location?.reload();
+      window.location.reload();
     });
 
     function filterApps(query) {
