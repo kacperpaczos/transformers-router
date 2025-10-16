@@ -1,10 +1,27 @@
 /* eslint-env browser */
 /* global document */
 import { initProviderWithUI } from '../../__assets__/common.js';
+import { env } from '@huggingface/transformers';
+
+// Prefer WebGPU if dostępny, w przeciwnym razie zoptymalizuj WASM
+const hasWebGPU = typeof navigator !== 'undefined' && 'gpu' in navigator;
+if (!hasWebGPU) {
+  try {
+    env.backends.onnx.wasm.simd = true;
+    // Ogranicz liczbę wątków, by nie blokować UI
+    const cores = navigator.hardwareConcurrency || 2;
+    env.backends.onnx.wasm.numThreads = Math.min(4, Math.max(1, cores - 1));
+  } catch {}
+}
 
 const provider = await initProviderWithUI({
   modality: 'llm',
-  config: { model: 'onnx-community/Qwen2.5-0.5B-Instruct', device: 'wasm', dtype: 'q4', maxTokens: 40 }
+  config: {
+    model: 'onnx-community/Qwen2.5-0.5B-Instruct',
+    device: hasWebGPU ? 'webgpu' : 'wasm',
+    dtype: 'q4',
+    maxTokens: 20
+  }
 });
 
 const input = document.getElementById('chat-input');

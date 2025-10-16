@@ -52,15 +52,43 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
     this.loading = true;
 
     try {
-      const { pipeline } = await getTransformers();
+      const { pipeline, env } = await getTransformers();
 
-      this.pipeline = await pipeline('feature-extraction', this.config.model, {
-        dtype: this.config.dtype || 'fp32',
-        device: this.config.device || 'cpu',
-        progress_callback: progressCallback,
-      });
+      const desiredDevice = (this.config.device as string | undefined) || 'webgpu';
+      const tryOrder = desiredDevice === 'webgpu'
+        ? ['webgpu', 'wasm', 'cpu']
+        : [desiredDevice, ...(desiredDevice !== 'wasm' ? ['wasm'] : []), 'cpu'];
 
-      this.loaded = true;
+      const dtype = this.config.dtype || 'fp32';
+
+      let lastError: Error | null = null;
+      for (const dev of tryOrder) {
+        try {
+          if (dev === 'wasm' && env?.backends?.onnx?.wasm) {
+            try {
+              env.backends.onnx.wasm.simd = true;
+              const cores = (typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 2) || 2;
+              env.backends.onnx.wasm.numThreads = Math.min(4, Math.max(1, cores - 1));
+            } catch {}
+          }
+
+          this.pipeline = await pipeline('feature-extraction', this.config.model, {
+            dtype,
+            device: dev as unknown as 'cpu' | 'gpu' | 'webgpu',
+            progress_callback: progressCallback,
+          });
+
+          this.loaded = true;
+          lastError = null;
+          break;
+        } catch (e) {
+          lastError = e instanceof Error ? e : new Error(String(e));
+        }
+      }
+
+      if (!this.loaded) {
+        throw lastError || new Error('Unknown error during Embedding model load');
+      }
     } catch (error) {
       this.loaded = false;
       throw new Error(
