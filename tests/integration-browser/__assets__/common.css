@@ -73,3 +73,16 @@
   margin: 8px 0 12px 0;
 }
 
+/* Categories */
+.category {
+  margin-top: 18px;
+}
+.category h3 {
+  margin: 10px 0;
+}
+.app-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
