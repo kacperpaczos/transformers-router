@@ -142,6 +142,19 @@ Modalities:
   - `progress`: nie-degresja, finalnie `100`.
   - Output: `llm-output` (non-empty), `tts-size` (> 0), `stt-text` (non-empty for known samples).
 
+## Integration-Browser suites (Playwright)
+
+Zestawy testów przeglądarkowych Playwright znajdują się w `tests/integration-browser/suites/*.suite.ts` i korzystają z jednej, wspólnej strony hostującej provider: `tests/integration-browser/__app__/provider/index.html`.
+
+Przykład uruchomienia strony w testach:
+
+```ts
+await page.goto('/tests/integration-browser/__app__/provider/index.html');
+await page.waitForFunction(() => (window as any).testReady === true);
+```
+
+Konsolidacja upraszcza utrzymanie i przyspiesza testy. Legacy pliki `*.browser.test.ts` oraz strony `tests/integration-browser/pages/*.html` zostały usunięte po migracji scenariuszy do suite’ów.
+
 ## Test Models
 
 For integration tests, we use small, fast models that are suitable for testing:
