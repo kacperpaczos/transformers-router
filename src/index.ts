@@ -83,6 +83,3 @@ export type {
   AudioMetadata,
 } from './utils/AudioConverter';
 export { audioConverter, AudioConverter } from './utils/AudioConverter';
-
-// Legacy router (for backward compatibility)
-export { TransformersRouter, Route, RouterOptions } from './router';

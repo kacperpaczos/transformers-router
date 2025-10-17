@@ -1,5 +1,5 @@
 /**
- * Basic Chat Example with Transformers Router
+ * Basic Chat Example with Transformers Router Library
  *
  * This example demonstrates basic chat functionality with the Transformers Router library,
  * including simple message exchange, chat with history, and token usage tracking.

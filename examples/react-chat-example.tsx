@@ -1,5 +1,5 @@
 /**
- * React Chat Example with Transformers Router
+ * React Chat Example with Transformers Router Library
  * 
  * To use this example:
  * 1. Install dependencies: npm install react react-dom @types/react @types/react-dom

@@ -1,5 +1,5 @@
 /**
- * Basic Usage Example - Getting Started with Transformers Router
+ * Basic Usage Example - Getting Started with Transformers Router Library
  *
  * This example demonstrates the basic usage of the Transformers Router library,
  * showcasing text generation, chat with history, and text-to-speech capabilities.
@@ -15,7 +15,7 @@ const logger = typeof console !== 'undefined' ? console : {
 };
 
 async function main() {
-  logger.log('=== Transformers Router - Basic Example ===\n');
+  logger.log('=== Transformers Router Library - Basic Example ===\n');
 
   // Create AI provider with multiple modalities
   const provider = createAIProvider({
