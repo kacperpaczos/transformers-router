@@ -52,15 +52,48 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
     this.loading = true;
 
     try {
-      const { pipeline } = await getTransformers();
+      const { pipeline, env } = await getTransformers();
 
-      this.pipeline = await pipeline('feature-extraction', this.config.model, {
-        dtype: this.config.dtype || 'fp32',
-        device: this.config.device || 'cpu',
-        progress_callback: progressCallback,
-      });
+      const desiredDevice = (this.config.device as string | undefined) || 'webgpu';
+      const tryOrder = desiredDevice === 'webgpu'
+        ? ['webgpu', 'wasm', 'cpu']
+        : [desiredDevice, ...(desiredDevice !== 'wasm' ? ['wasm'] : []), 'cpu'];
 
-      this.loaded = true;
+      const dtype = this.config.dtype || 'fp32';
+
+      let lastError: Error | null = null;
+      for (const dev of tryOrder) {
+        try {
+          if (dev === 'wasm' && env?.backends?.onnx?.wasm) {
+            try {
+              env.backends.onnx.wasm.simd = true;
+              const cores = (typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 2) || 2;
+              env.backends.onnx.wasm.numThreads = Math.min(4, Math.max(1, cores - 1));
+            } catch {
+              /* ignore WASM tuning errors */
+            }
+          }
+
+          const pipelineDevice = dev === 'wasm' ? 'cpu' : (dev as 'cpu' | 'gpu' | 'webgpu');
+          console.log('[transformers-router] load Embedding try', { device: dev, dtype });
+          this.pipeline = await pipeline('feature-extraction', this.config.model, {
+            dtype,
+            device: pipelineDevice,
+            progress_callback: progressCallback,
+          });
+
+          this.loaded = true;
+          lastError = null;
+          break;
+        } catch (err) {
+          console.log('[transformers-router] load Embedding fallback', { from: dev, error: (err as Error)?.message });
+          lastError = err instanceof Error ? err : new Error(String(err));
+        }
+      }
+
+      if (!this.loaded) {
+        throw lastError || new Error('Unknown error during Embedding model load');
+      }
     } catch (error) {
       this.loaded = false;
       throw new Error(

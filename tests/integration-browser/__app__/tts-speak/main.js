@@ -13,8 +13,8 @@ btn?.addEventListener('click', async () => {
   try {
     const text = input?.value || 'Hello from Transformers Router';
     const blob = await provider.speak(text);
-    const url = URL.createObjectURL(blob);
-    audio.src = url;
+    // Standaryzowane renderowanie przez helpery UI
+    window.ui?.setOutputAudio?.(blob);
     await audio.play().catch(() => {});
   } catch (e) {
     console.error(e);

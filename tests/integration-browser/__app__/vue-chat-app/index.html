@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>vue-chat-app</title>
+  <link rel="stylesheet" href="/tests/integration-browser/__assets__/common.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "@huggingface/transformers": "/node_modules/@huggingface/transformers/dist/transformers.min.js",
+        "onnxruntime-web": "/node_modules/onnxruntime-web/dist/ort.min.js",
+        "vue": "/node_modules/vue/dist/vue.esm-browser.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="header-nav" style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+    <a href="/tests/integration-browser/__assets__/index.html">← Menu</a>
+    <h2 style="margin:0;">Vue Chat App</h2>
+  </div>
+
+  <div id="app" class="panel"></div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
+
+

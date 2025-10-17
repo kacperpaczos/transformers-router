@@ -45,19 +45,52 @@ export class STTModel extends BaseModel<STTConfig> {
     this.loading = true;
 
     try {
-      const { pipeline } = await getTransformers();
+      const { pipeline, env } = await getTransformers();
 
-      this.pipeline = await pipeline(
-        'automatic-speech-recognition',
-        this.config.model,
-        {
-          dtype: this.config.dtype || 'q8',
-          device: this.config.device || 'cpu',
-          progress_callback: progressCallback,
+      const desiredDevice = (this.config.device as string | undefined) || 'webgpu';
+      const tryOrder = desiredDevice === 'webgpu'
+        ? ['webgpu', 'wasm', 'cpu']
+        : [desiredDevice, ...(desiredDevice !== 'wasm' ? ['wasm'] : []), 'cpu'];
+
+      const dtype = this.config.dtype || 'q8';
+
+      let lastError: Error | null = null;
+      for (const dev of tryOrder) {
+        try {
+          if (dev === 'wasm' && env?.backends?.onnx?.wasm) {
+            try {
+              env.backends.onnx.wasm.simd = true;
+              const cores = (typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 2) || 2;
+              env.backends.onnx.wasm.numThreads = Math.min(4, Math.max(1, cores - 1));
+            } catch {
+              /* ignore WASM tuning errors */
+            }
+          }
+
+          const pipelineDevice = dev === 'wasm' ? 'cpu' : (dev as 'cpu' | 'gpu' | 'webgpu');
+          console.log('[transformers-router] load STT try', { device: dev, dtype });
+          this.pipeline = await pipeline(
+            'automatic-speech-recognition',
+            this.config.model,
+            {
+              dtype,
+              device: pipelineDevice,
+              progress_callback: progressCallback,
+            }
+          );
+
+          this.loaded = true;
+          lastError = null;
+          break;
+        } catch (err) {
+          console.log('[transformers-router] load STT fallback', { from: dev, error: (err as Error)?.message });
+          lastError = err instanceof Error ? err : new Error(String(err));
         }
-      );
+      }
 
-      this.loaded = true;
+      if (!this.loaded) {
+        throw lastError || new Error('Unknown error during STT model load');
+      }
     } catch (error) {
       this.loaded = false;
       throw new Error(

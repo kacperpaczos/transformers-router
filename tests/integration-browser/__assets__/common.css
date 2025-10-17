@@ -47,12 +47,59 @@
 }
 
 .links a {
-  display: block;
-  padding: 10px;
-  background: #faf6ff;
-  color: #5b21b6;
-  border: 1px solid #e9d5ff;
-  border-radius: 10px;
   text-decoration: none;
+}
+
+/* Toolbar i viewer */
+.viewer__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+#search {
+  width: 100%;
+  max-width: 420px;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  margin: 8px 0 12px 0;
+}
+
+/* Categories */
+.category {
+  margin-top: 18px;
+}
+.category h3 {
+  margin: 10px 0;
+}
+.app-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  height: 56px; /* unified height */
+}
+
+.app-item a {
+  display: block;
+  color: #111827;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-item .btn.preview {
+  min-width: 110px;
+  text-align: center;
 }
 

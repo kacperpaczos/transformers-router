@@ -51,15 +51,50 @@ export class LLMModel extends BaseModel<LLMConfig> {
     this.loading = true;
 
     try {
-      const { pipeline } = await getTransformers();
+      const { pipeline, env } = await getTransformers();
 
-      this.pipeline = await pipeline('text-generation', this.config.model, {
-        dtype: this.config.dtype || 'fp32', // Zmień z 'q4' na 'fp32'
-        device: this.config.device || 'cpu',
-        progress_callback: progressCallback,
-      });
+      const desiredDevice = (this.config.device as string | undefined) || 'webgpu';
+      const tryOrder = desiredDevice === 'webgpu'
+        ? ['webgpu', 'wasm', 'cpu']
+        : [desiredDevice, ...(desiredDevice !== 'wasm' ? ['wasm'] : []), 'cpu'];
 
-      this.loaded = true;
+      const dtype = this.config.dtype || 'fp32';
+
+      let lastError: Error | null = null;
+      for (const dev of tryOrder) {
+        try {
+          // Optimize WASM backend if used
+          if (dev === 'wasm' && env?.backends?.onnx?.wasm) {
+            try {
+              env.backends.onnx.wasm.simd = true;
+              const cores = (typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 2) || 2;
+              env.backends.onnx.wasm.numThreads = Math.min(4, Math.max(1, cores - 1));
+            } catch {
+              /* ignore WASM tuning errors */
+            }
+          }
+
+          const pipelineDevice = dev === 'wasm' ? 'cpu' : (dev as 'cpu' | 'gpu' | 'webgpu');
+          console.log('[transformers-router] load LLM try', { device: dev, dtype });
+          this.pipeline = await pipeline('text-generation', this.config.model, {
+            dtype,
+            device: pipelineDevice,
+            progress_callback: progressCallback,
+          });
+
+          this.loaded = true;
+          lastError = null;
+          break;
+        } catch (err) {
+          console.log('[transformers-router] load LLM fallback', { from: dev, error: (err as Error)?.message });
+          lastError = err instanceof Error ? err : new Error(String(err));
+          // try next device
+        }
+      }
+
+      if (!this.loaded) {
+        throw lastError || new Error('Unknown error during LLM model load');
+      }
     } catch (error) {
       this.loaded = false;
       throw new Error(
@@ -83,8 +118,8 @@ export class LLMModel extends BaseModel<LLMConfig> {
       (input: Message[] | string, opts?: unknown): Promise<
         Array<{ generated_text: Message[] | string }>
       >;
-      tokenizer?: any;
-      model?: any; // Dodaj dla dostępu do config
+      tokenizer?: { eos_token_id?: number; pad_token_id?: number; chat_template?: unknown };
+      model?: { config?: { eos_token_id?: number; pad_token_id?: number } };
     };
 
     // Convert string to messages array
@@ -205,10 +240,12 @@ export class LLMModel extends BaseModel<LLMConfig> {
     ) => Promise<Array<{ generated_text: string }>>;
 
     // Derive special tokens
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const anyPipeline = this.getPipeline() as any;
-    const eosId = (anyPipeline?.tokenizer?.eos_token_id ?? anyPipeline?.model?.config?.eos_token_id) ?? 50256;
-    const padId = (anyPipeline?.tokenizer?.pad_token_id ?? anyPipeline?.model?.config?.pad_token_id) ?? eosId;
+    const p2 = this.getPipeline() as {
+      tokenizer?: { eos_token_id?: number; pad_token_id?: number };
+      model?: { config?: { eos_token_id?: number; pad_token_id?: number } };
+    };
+    const eosId = (p2?.tokenizer?.eos_token_id ?? p2?.model?.config?.eos_token_id) ?? 50256;
+    const padId = (p2?.tokenizer?.pad_token_id ?? p2?.model?.config?.pad_token_id) ?? eosId;
 
     const generationOptions = {
       max_new_tokens: options.maxTokens || this.config.maxTokens || 256,

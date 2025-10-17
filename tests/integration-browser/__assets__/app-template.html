@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{APP_TITLE}}</title>
+  <link rel="stylesheet" href="/tests/integration-browser/__assets__/common.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "@huggingface/transformers": "/node_modules/@huggingface/transformers/dist/transformers.min.js",
+        "onnxruntime-web": "/node_modules/onnxruntime-web/dist/ort.min.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="header-nav" style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+    <a href="/tests/integration-browser/__assets__/index.html">← Menu</a>
+    <h2 style="margin:0;">{{APP_TITLE}}</h2>
+  </div>
+
+  <div id="root" class="panel">
+    <p class="description">{{APP_DESCRIPTION}}</p>
+
+    <div class="status-row">
+      <button class="btn" data-testid="start-warmup">Warmup</button>
+      <div data-testid="status">idle</div>
+      <div data-testid="file">-</div>
+      <div data-testid="progress">0</div>
+    </div>
+
+    <div class="progressbar">
+      <div class="progressbar__fill"></div>
+    </div>
+
+    {{APP_CONTENT}}
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
+
+

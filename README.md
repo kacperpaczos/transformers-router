@@ -617,11 +617,17 @@ npm run build
 npm run serve:browser
 ```
 
-Następnie otwórz w przeglądarce adres:
+Następnie otwórz w przeglądarce adres (obie ścieżki działają):
 
 ```
+http://localhost:3001/
 http://localhost:3001/tests/integration-browser/__assets__/index.html
 ```
+
+Strona indeksu zawiera:
+- wyszukiwarkę aplikacji testowych,
+- podgląd wbudowany (iframe) z przyciskami: Otwórz w nowej karcie, Przeładuj, Zamknij podgląd,
+- automatyczne ładowanie przez parametr `?app=` (np. `?app=/tests/integration-browser/__app__/llm-progress/index.html`).
 
 Na stronie zobaczysz panel statusu. Kliknij przycisk Start (data-testid="start-warmup") i obserwuj pola status/progress/file. Możesz też wywołać ręcznie w konsoli przeglądarki:
 

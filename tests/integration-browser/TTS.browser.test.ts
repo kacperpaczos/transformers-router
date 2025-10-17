@@ -26,12 +26,19 @@ test.describe('TTS Integration Tests (Browser)', () => {
         size: audioBlob.size,
         type: audioBlob.type,
         hasContent: audioBlob.size > 0,
+        // UI markers
+        testids: {
+          hasAudioEl: !!document.querySelector('[data-testid="tts-audio"]'),
+          hasSizeEl: !!document.querySelector('[data-testid="tts-size"]'),
+        }
       };
     });
 
     expect(result.isBlob).toBe(true);
     expect(result.size).toBeGreaterThan(0);
     expect(result.type).toContain('audio');
+    expect(result.testids.hasAudioEl).toBe(true);
+    expect(result.testids.hasSizeEl).toBe(true);
     expect(result.hasContent).toBe(true);
   });
 
