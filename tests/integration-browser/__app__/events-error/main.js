@@ -1,8 +1,9 @@
 /* eslint-env browser */
 /* global document */
-import { initProviderWithUI } from '../../__assets__/common.js';
+import { initProviderWithUI, attachToolbar } from '../../__assets__/common.js';
 
 // Intentionally invalid model to trigger error events
+attachToolbar();
 const provider = await initProviderWithUI({
   modality: 'llm',
   config: { model: 'nonexistent/model-xyz', dtype: 'q4' }

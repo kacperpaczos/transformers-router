@@ -1,7 +1,8 @@
 /* eslint-env browser */
 /* global document */
-import { initProviderWithUI } from '../../__assets__/common.js';
+import { initProviderWithUI, attachToolbar } from '../../__assets__/common.js';
 
+attachToolbar();
 const provider = await initProviderWithUI({
   modality: 'llm',
   config: { model: 'onnx-community/Qwen2.5-0.5B-Instruct', dtype: 'q4' }

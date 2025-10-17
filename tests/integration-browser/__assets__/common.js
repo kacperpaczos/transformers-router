@@ -1,4 +1,4 @@
-function attachToolbar() {
+export function attachToolbar() {
   const root = document.getElementById('root');
   if (!root) return;
 
