@@ -1,45 +1,68 @@
-const { TransformersRouter } = require('../dist/index');
+/**
+ * Basic Usage Example - Getting Started with Transformers Router
+ */
 
-// Create a new router instance
-const router = new TransformersRouter();
+const { createAIProvider } = require('../dist/index');
 
-// Add some routes
-router.addRoute('/hello', (name) => {
-  return `Hello, ${name}!`;
-});
-
-router.addRoute('/add', (a, b) => {
-  return a + b;
-});
-
-router.addRoute('/async', async (data) => {
-  // Simulate async operation
-  await new Promise(resolve => setTimeout(resolve, 100));
-  return `Processed: ${data}`;
-});
-
-// Execute routes
 async function main() {
+  console.log('🚀 Transformers Router - Basic Example\n');
+
+  // Create AI provider with multiple modalities
+  const provider = createAIProvider({
+    llm: {
+      model: 'onnx-community/Qwen2.5-0.5B-Instruct',
+      dtype: 'q4',
+      maxTokens: 100,
+      temperature: 0.7,
+    },
+    tts: {
+      model: 'Xenova/speecht5_tts',
+      dtype: 'fp32',
+    },
+    stt: {
+      model: 'Xenova/whisper-tiny',
+      dtype: 'fp32',
+    },
+  });
+
   try {
-    // Execute the hello route
-    const greeting = await router.execute('/hello', 'World');
-    console.log(greeting); // Output: Hello, World!
+    // Wait for models to load
+    console.log('Loading models...');
+    await provider.warmup('llm');
+    await provider.warmup('tts');
+    await provider.warmup('stt');
 
-    // Execute the add route
-    const sum = await router.execute('/add', 5, 3);
-    console.log(`Sum: ${sum}`); // Output: Sum: 8
+    // 1. Simple text generation
+    console.log('📝 Text Generation:');
+    const response = await provider.chat('Write a short poem about AI');
+    console.log(`AI: ${response.content}\n`);
 
-    // Execute the async route
-    const result = await router.execute('/async', 'test data');
-    console.log(result); // Output: Processed: test data
+    // 2. Chat with history
+    console.log('💬 Chat with History:');
+    const messages = [
+      { role: 'system', content: 'You are a helpful assistant.' },
+      { role: 'user', content: 'What is machine learning?' },
+    ];
+    const chatResponse = await provider.chat(messages);
+    console.log(`AI: ${chatResponse.content}\n`);
 
-    // List all routes
-    console.log('\nAll routes:');
-    router.getAllRoutes().forEach(route => {
-      console.log(`  - ${route.path}`);
-    });
+    // 3. Text-to-Speech
+    console.log('🔊 Text-to-Speech:');
+    const audioBlob = await provider.speak('Hello! This is a test of text to speech synthesis.');
+    console.log(`Generated audio: ${audioBlob.size} bytes\n`);
+
+    // 4. Speech-to-Text (requires audio file)
+    console.log('🎤 Speech-to-Text:');
+    console.log('Note: STT requires an audio file. This is just a demo of the API.');
+    // const transcription = await provider.listen(audioBlob);
+    // console.log(`Transcription: "${transcription}"`);
+
   } catch (error) {
-    console.error('Error:', error.message);
+    console.error('❌ Error:', error.message);
+  } finally {
+    // Clean up resources
+    await provider.dispose();
+    console.log('✅ Example completed');
   }
 }
 

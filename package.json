@@ -1,7 +1,8 @@
 {
   "name": "transformers-router",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Local AI infrastructure for agent frameworks - Transformers.js wrapper with LLM, TTS, STT, Web Workers, React & Vue support",
+  "homepage": "https://github.com/kacperpaczos/transformers-router#readme",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -11,12 +12,28 @@
       "require": "./dist/index.js"
     },
     "./react": {
-      "types": "./src/react/index.ts",
-      "import": "./src/react/index.ts"
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
     },
     "./vue": {
-      "types": "./src/vue/index.ts",
-      "import": "./src/vue/index.ts"
+      "types": "./dist/vue/index.d.ts",
+      "import": "./dist/vue/index.js"
+    },
+    "./adapters": {
+      "types": "./dist/adapters/index.d.ts",
+      "import": "./dist/adapters/index.js"
+    },
+    "./models": {
+      "types": "./dist/models/index.d.ts",
+      "import": "./dist/models/index.js"
+    },
+    "./workers": {
+      "types": "./dist/workers/index.d.ts",
+      "import": "./dist/workers/index.js"
+    },
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "import": "./dist/utils/index.js"
     }
   },
   "scripts": {
@@ -52,14 +69,30 @@
     "huggingface",
     "transformers.js",
     "openai-compatible",
-    "agent-framework"
+    "agent-framework",
+    "text-to-speech",
+    "speech-to-text",
+    "machine-learning",
+    "natural-language-processing",
+    "browser-ai",
+    "web-ai",
+    "onnx",
+    "voice-profiles",
+    "react",
+    "vue",
+    "typescript",
+    "javascript"
   ],
   "author": "Kacper Paczos",
   "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "examples"
   ],
   "peerDependencies": {
     "@huggingface/transformers": "^3.0.0"
