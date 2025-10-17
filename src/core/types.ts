@@ -186,7 +186,9 @@ export interface EventDataMap {
 export type EventType = keyof EventDataMap;
 
 // Type-safe event callback
-export type EventCallback<T extends EventType = EventType> = (data: EventDataMap[T]) => void;
+export type EventCallback<T extends EventType = EventType> = (
+  data: EventDataMap[T]
+) => void;
 
 // OpenAI-compatible types
 export interface OpenAIChatCompletionRequest {
@@ -241,4 +243,3 @@ export interface CachedModel {
   loadedAt: number;
   lastUsedAt: number;
 }
-

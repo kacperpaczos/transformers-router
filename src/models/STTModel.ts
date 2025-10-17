@@ -7,7 +7,8 @@ import { BaseModel } from './BaseModel';
 import { audioConverter, type AudioInput } from '../utils/AudioConverter';
 
 // Dynamically import Transformers.js
-let transformersModule: typeof import('@huggingface/transformers') | null = null;
+let transformersModule: typeof import('@huggingface/transformers') | null =
+  null;
 
 async function getTransformers() {
   if (!transformersModule) {
@@ -24,13 +25,15 @@ export class STTModel extends BaseModel<STTConfig> {
   /**
    * Load the STT model
    */
-  async load(progressCallback?: (progress: {
-    status: string;
-    file?: string;
-    progress?: number;
-    loaded?: number;
-    total?: number;
-  }) => void): Promise<void> {
+  async load(
+    progressCallback?: (progress: {
+      status: string;
+      file?: string;
+      progress?: number;
+      loaded?: number;
+      total?: number;
+    }) => void
+  ): Promise<void> {
     if (this.loaded) {
       if (typeof console !== 'undefined' && console.log) {
         console.log('[STTModel] load(): early-return, already loaded');
@@ -43,7 +46,7 @@ export class STTModel extends BaseModel<STTConfig> {
         console.log('[STTModel] load(): waiting for concurrent load');
       }
       while (this.loading) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
       if (typeof console !== 'undefined' && console.log) {
         console.log('[STTModel] load(): concurrent load finished');
@@ -59,31 +62,48 @@ export class STTModel extends BaseModel<STTConfig> {
         console.log('[STTModel] load(): transformers loaded');
       }
 
-      const isBrowser = typeof window !== 'undefined' && typeof navigator !== 'undefined';
-      const supportsWebGPU = isBrowser && typeof (navigator as unknown as { gpu?: unknown }).gpu !== 'undefined';
+      const isBrowser =
+        typeof window !== 'undefined' && typeof navigator !== 'undefined';
+      const supportsWebGPU =
+        isBrowser &&
+        typeof (navigator as unknown as { gpu?: unknown }).gpu !== 'undefined';
       let webgpuAdapterAvailable = false;
       if (supportsWebGPU) {
         try {
-          const navWithGpu = navigator as unknown as { gpu?: { requestAdapter?: () => Promise<unknown> } };
-          const adapter = await (navWithGpu.gpu?.requestAdapter?.() || Promise.resolve(null));
+          const navWithGpu = navigator as unknown as {
+            gpu?: { requestAdapter?: () => Promise<unknown> };
+          };
+          const adapter = await (navWithGpu.gpu?.requestAdapter?.() ||
+            Promise.resolve(null));
           webgpuAdapterAvailable = !!adapter;
         } catch {
           webgpuAdapterAvailable = false;
         }
       }
 
-      const desiredDevice = (this.config.device as string | undefined) || (isBrowser ? (webgpuAdapterAvailable ? 'webgpu' : 'wasm') : 'cpu');
+      const desiredDevice =
+        (this.config.device as string | undefined) ||
+        (isBrowser ? (webgpuAdapterAvailable ? 'webgpu' : 'wasm') : 'cpu');
       const tryOrder = (() => {
         if (isBrowser) {
-          if (desiredDevice === 'webgpu') return webgpuAdapterAvailable ? ['webgpu', 'wasm'] : ['wasm'];
+          if (desiredDevice === 'webgpu')
+            return webgpuAdapterAvailable ? ['webgpu', 'wasm'] : ['wasm'];
           if (desiredDevice === 'wasm') return ['wasm'];
           return ['wasm'];
         }
-        return desiredDevice === 'webgpu' ? ['webgpu', 'cpu'] : [desiredDevice, ...(desiredDevice !== 'cpu' ? ['cpu'] : [])];
+        return desiredDevice === 'webgpu'
+          ? ['webgpu', 'cpu']
+          : [desiredDevice, ...(desiredDevice !== 'cpu' ? ['cpu'] : [])];
       })();
 
       if (typeof console !== 'undefined' && console.log) {
-        console.log('[STTModel] load(): env', { isBrowser, supportsWebGPU, webgpuAdapterAvailable, desiredDevice, tryOrder });
+        console.log('[STTModel] load(): env', {
+          isBrowser,
+          supportsWebGPU,
+          webgpuAdapterAvailable,
+          desiredDevice,
+          tryOrder,
+        });
       }
 
       const dtype = this.config.dtype || 'q8';
@@ -98,21 +118,39 @@ export class STTModel extends BaseModel<STTConfig> {
             console.log('[STTModel] attempting device:', dev);
           }
           if (env?.backends?.onnx) {
-            const onnxBackends = env.backends.onnx as { backendHint?: string; wasm?: { simd?: boolean; numThreads?: number } };
+            const onnxBackends = env.backends.onnx as {
+              backendHint?: string;
+              wasm?: { simd?: boolean; numThreads?: number };
+            };
             if (dev === 'wasm') {
-              if ('backendHint' in onnxBackends) onnxBackends.backendHint = 'wasm';
+              if ('backendHint' in onnxBackends)
+                onnxBackends.backendHint = 'wasm';
               if (onnxBackends.wasm) {
                 onnxBackends.wasm.simd = true;
-                const cores = (typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 2) || 2;
-                onnxBackends.wasm.numThreads = Math.min(4, Math.max(1, cores - 1));
+                const cores =
+                  (typeof navigator !== 'undefined'
+                    ? navigator.hardwareConcurrency
+                    : 2) || 2;
+                onnxBackends.wasm.numThreads = Math.min(
+                  4,
+                  Math.max(1, cores - 1)
+                );
                 if (typeof console !== 'undefined' && console.log) {
-                  console.log('[STTModel] WASM config:', { backendHint: onnxBackends.backendHint, simd: onnxBackends.wasm.simd, numThreads: onnxBackends.wasm.numThreads });
+                  console.log('[STTModel] WASM config:', {
+                    backendHint: onnxBackends.backendHint,
+                    simd: onnxBackends.wasm.simd,
+                    numThreads: onnxBackends.wasm.numThreads,
+                  });
                 }
               }
             } else if (dev === 'webgpu') {
-              if ('backendHint' in onnxBackends) onnxBackends.backendHint = 'webgpu';
+              if ('backendHint' in onnxBackends)
+                onnxBackends.backendHint = 'webgpu';
               if (typeof console !== 'undefined' && console.log) {
-                console.log('[STTModel] WebGPU config:', { backendHint: onnxBackends.backendHint, adapterAvailable: webgpuAdapterAvailable });
+                console.log('[STTModel] WebGPU config:', {
+                  backendHint: onnxBackends.backendHint,
+                  adapterAvailable: webgpuAdapterAvailable,
+                });
               }
             }
           }
@@ -136,7 +174,12 @@ export class STTModel extends BaseModel<STTConfig> {
         } catch (e) {
           lastError = e instanceof Error ? e : new Error(String(e));
           if (typeof console !== 'undefined' && console.log) {
-            console.log('[STTModel] device failed:', dev, '| error:', (lastError as Error).message);
+            console.log(
+              '[STTModel] device failed:',
+              dev,
+              '| error:',
+              (lastError as Error).message
+            );
           }
         }
       }
@@ -219,4 +262,3 @@ export class STTModel extends BaseModel<STTConfig> {
     return this.transcribe(blob, options);
   }
 }
-

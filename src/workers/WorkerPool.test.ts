@@ -14,7 +14,7 @@ class MockWorker {
       this.sendMessage({
         id: message.id,
         type: 'response',
-        data: 'test result'
+        data: 'test result',
       });
     }, 10);
   });
@@ -126,8 +126,8 @@ describe('WorkerPool', () => {
                 data: {
                   id: 'test-task',
                   type: 'error',
-                  error: 'Test error'
-                }
+                  error: 'Test error',
+                },
               });
             }, 0);
           }
@@ -137,7 +137,9 @@ describe('WorkerPool', () => {
 
       const newPool = new WorkerPool(mockWorkerUrl, 1);
 
-      await expect(newPool.execute('failing-task')).rejects.toThrow('Test error');
+      await expect(newPool.execute('failing-task')).rejects.toThrow(
+        'Test error'
+      );
       newPool.terminate();
     }, 10000);
   });
@@ -163,7 +165,7 @@ describe('WorkerPool', () => {
       const pool = new WorkerPool(mockWorkerUrl, 1);
 
       // Wait for worker restart
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await new Promise(resolve => setTimeout(resolve, 10));
 
       // Should have created a replacement worker (initial + restart)
       expect(global.Worker).toHaveBeenCalledTimes(2);
@@ -205,4 +207,3 @@ describe('WorkerPool', () => {
     });
   });
 });
-

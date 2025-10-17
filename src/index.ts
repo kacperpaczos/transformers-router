@@ -2,7 +2,10 @@
 export { AIProvider, createAIProvider } from './core/AIProvider';
 
 // Web Workers Support (Phase 2)
-export { AIProviderWorker, createAIProviderWorker } from './workers/AIProviderWorker';
+export {
+  AIProviderWorker,
+  createAIProviderWorker,
+} from './workers/AIProviderWorker';
 export { WorkerPool } from './workers/WorkerPool';
 
 // Adapters
@@ -60,7 +63,11 @@ export type {
 } from './core/types';
 
 // Utility types and classes
-export type { AudioInput, AudioOutput, AudioMetadata } from './utils/AudioConverter';
+export type {
+  AudioInput,
+  AudioOutput,
+  AudioMetadata,
+} from './utils/AudioConverter';
 export { audioConverter, AudioConverter } from './utils/AudioConverter';
 
 // Legacy router (for backward compatibility)

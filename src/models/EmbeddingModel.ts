@@ -14,7 +14,8 @@ interface Tensor {
 }
 
 // Dynamically import Transformers.js
-let transformersModule: typeof import('@huggingface/transformers') | null = null;
+let transformersModule: typeof import('@huggingface/transformers') | null =
+  null;
 
 async function getTransformers() {
   if (!transformersModule) {
@@ -31,20 +32,22 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
   /**
    * Load the embedding model
    */
-  async load(progressCallback?: (progress: {
-    status: string;
-    file?: string;
-    progress?: number;
-    loaded?: number;
-    total?: number;
-  }) => void): Promise<void> {
+  async load(
+    progressCallback?: (progress: {
+      status: string;
+      file?: string;
+      progress?: number;
+      loaded?: number;
+      total?: number;
+    }) => void
+  ): Promise<void> {
     if (this.loaded) {
       return;
     }
 
     if (this.loading) {
       while (this.loading) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
       return;
     }
@@ -54,30 +57,47 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
     try {
       const { pipeline, env } = await getTransformers();
 
-      const isBrowser = typeof window !== 'undefined' && typeof navigator !== 'undefined';
-      const supportsWebGPU = isBrowser && typeof (navigator as unknown as { gpu?: unknown }).gpu !== 'undefined';
+      const isBrowser =
+        typeof window !== 'undefined' && typeof navigator !== 'undefined';
+      const supportsWebGPU =
+        isBrowser &&
+        typeof (navigator as unknown as { gpu?: unknown }).gpu !== 'undefined';
       let webgpuAdapterAvailable = false;
       if (supportsWebGPU) {
         try {
-          const navWithGpu = navigator as unknown as { gpu?: { requestAdapter?: () => Promise<unknown> } };
-          const adapter = await (navWithGpu.gpu?.requestAdapter?.() || Promise.resolve(null));
+          const navWithGpu = navigator as unknown as {
+            gpu?: { requestAdapter?: () => Promise<unknown> };
+          };
+          const adapter = await (navWithGpu.gpu?.requestAdapter?.() ||
+            Promise.resolve(null));
           webgpuAdapterAvailable = !!adapter;
         } catch {
           webgpuAdapterAvailable = false;
         }
       }
 
-      const desiredDevice = (this.config.device as string | undefined) || (isBrowser ? (webgpuAdapterAvailable ? 'webgpu' : 'wasm') : 'cpu');
+      const desiredDevice =
+        (this.config.device as string | undefined) ||
+        (isBrowser ? (webgpuAdapterAvailable ? 'webgpu' : 'wasm') : 'cpu');
       const tryOrder = (() => {
         if (isBrowser) {
-          if (desiredDevice === 'webgpu') return webgpuAdapterAvailable ? ['webgpu', 'wasm'] : ['wasm'];
+          if (desiredDevice === 'webgpu')
+            return webgpuAdapterAvailable ? ['webgpu', 'wasm'] : ['wasm'];
           if (desiredDevice === 'wasm') return ['wasm'];
           return ['wasm'];
         }
-        return desiredDevice === 'webgpu' ? ['webgpu', 'cpu'] : [desiredDevice, ...(desiredDevice !== 'cpu' ? ['cpu'] : [])];
+        return desiredDevice === 'webgpu'
+          ? ['webgpu', 'cpu']
+          : [desiredDevice, ...(desiredDevice !== 'cpu' ? ['cpu'] : [])];
       })();
       if (typeof console !== 'undefined' && console.log) {
-        console.log('[EmbeddingModel] load(): env', { isBrowser, supportsWebGPU, webgpuAdapterAvailable, desiredDevice, tryOrder });
+        console.log('[EmbeddingModel] load(): env', {
+          isBrowser,
+          supportsWebGPU,
+          webgpuAdapterAvailable,
+          desiredDevice,
+          tryOrder,
+        });
       }
 
       const dtype = this.config.dtype || 'fp32';
@@ -89,47 +109,79 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
             console.log('[EmbeddingModel] attempting device:', dev);
           }
           if (env?.backends?.onnx) {
-            const onnxBackends = env.backends.onnx as { backendHint?: string; wasm?: { simd?: boolean; numThreads?: number } };
+            const onnxBackends = env.backends.onnx as {
+              backendHint?: string;
+              wasm?: { simd?: boolean; numThreads?: number };
+            };
             if (dev === 'wasm') {
-              if ('backendHint' in onnxBackends) onnxBackends.backendHint = 'wasm';
+              if ('backendHint' in onnxBackends)
+                onnxBackends.backendHint = 'wasm';
               if (onnxBackends.wasm) {
                 onnxBackends.wasm.simd = true;
-                const cores = (typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 2) || 2;
-                onnxBackends.wasm.numThreads = Math.min(4, Math.max(1, cores - 1));
+                const cores =
+                  (typeof navigator !== 'undefined'
+                    ? navigator.hardwareConcurrency
+                    : 2) || 2;
+                onnxBackends.wasm.numThreads = Math.min(
+                  4,
+                  Math.max(1, cores - 1)
+                );
                 if (typeof console !== 'undefined' && console.log) {
-                  console.log('[EmbeddingModel] WASM config:', { backendHint: onnxBackends.backendHint, simd: onnxBackends.wasm.simd, numThreads: onnxBackends.wasm.numThreads });
+                  console.log('[EmbeddingModel] WASM config:', {
+                    backendHint: onnxBackends.backendHint,
+                    simd: onnxBackends.wasm.simd,
+                    numThreads: onnxBackends.wasm.numThreads,
+                  });
                 }
               }
             } else if (dev === 'webgpu') {
-              if ('backendHint' in onnxBackends) onnxBackends.backendHint = 'webgpu';
+              if ('backendHint' in onnxBackends)
+                onnxBackends.backendHint = 'webgpu';
               if (typeof console !== 'undefined' && console.log) {
-                console.log('[EmbeddingModel] WebGPU config:', { backendHint: onnxBackends.backendHint, adapterAvailable: webgpuAdapterAvailable });
+                console.log('[EmbeddingModel] WebGPU config:', {
+                  backendHint: onnxBackends.backendHint,
+                  adapterAvailable: webgpuAdapterAvailable,
+                });
               }
             }
           }
 
-          this.pipeline = await pipeline('feature-extraction', this.config.model, {
-            dtype,
-            device: dev as unknown as 'webgpu' | 'wasm' | 'gpu' | 'cpu',
-            progress_callback: progressCallback,
-          });
+          this.pipeline = await pipeline(
+            'feature-extraction',
+            this.config.model,
+            {
+              dtype,
+              device: dev as unknown as 'webgpu' | 'wasm' | 'gpu' | 'cpu',
+              progress_callback: progressCallback,
+            }
+          );
 
           this.loaded = true;
           if (typeof console !== 'undefined' && console.log) {
-            console.log('[EmbeddingModel] loaded successfully with device:', dev);
+            console.log(
+              '[EmbeddingModel] loaded successfully with device:',
+              dev
+            );
           }
           lastError = null;
           break;
         } catch (e) {
           lastError = e instanceof Error ? e : new Error(String(e));
           if (typeof console !== 'undefined' && console.log) {
-            console.log('[EmbeddingModel] device failed:', dev, '| error:', (lastError as Error).message);
+            console.log(
+              '[EmbeddingModel] device failed:',
+              dev,
+              '| error:',
+              (lastError as Error).message
+            );
           }
         }
       }
 
       if (!this.loaded) {
-        throw lastError || new Error('Unknown error during Embedding model load');
+        throw (
+          lastError || new Error('Unknown error during Embedding model load')
+        );
       }
     } catch (error) {
       this.loaded = false;
@@ -164,7 +216,9 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
       // Type-safe conversion
       return this.tensorToArray(result);
     } catch (error) {
-      throw new Error(`Embedding generation failed: ${(error as Error).message}`);
+      throw new Error(
+        `Embedding generation failed: ${(error as Error).message}`
+      );
     }
   }
 
@@ -187,7 +241,7 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
     if (tensor.data && tensor.dims) {
       const data = Array.from(tensor.data);
       const [rows, cols] = tensor.dims;
-      
+
       const result: number[][] = [];
       for (let i = 0; i < rows; i++) {
         result.push(data.slice(i * cols, (i + 1) * cols));
@@ -249,4 +303,3 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
     };
   }
 }
-

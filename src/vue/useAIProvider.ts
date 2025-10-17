@@ -4,7 +4,11 @@
 
 import { ref, onUnmounted, type Ref } from 'vue';
 import { AIProvider, createAIProvider } from '../core/AIProvider';
-import type { AIProviderConfig, ProgressInfo, ModelStatus } from '../core/types';
+import type {
+  AIProviderConfig,
+  ProgressInfo,
+  ModelStatus,
+} from '../core/types';
 
 export interface UseAIProviderOptions extends AIProviderConfig {
   autoLoad?: boolean;
@@ -40,7 +44,7 @@ export function useAIProvider(
   const newProvider = createAIProvider(providerConfig);
 
   // Set up event listeners
-  newProvider.on('progress', (data) => {
+  newProvider.on('progress', data => {
     progress.value = data as ProgressInfo;
     isLoading.value = true;
   });
@@ -51,7 +55,7 @@ export function useAIProvider(
     statuses.value = newProvider.getAllStatuses();
   });
 
-  newProvider.on('error', (data) => {
+  newProvider.on('error', data => {
     const errorData = data as { error: Error };
     error.value = errorData.error;
     isLoading.value = false;
@@ -62,7 +66,7 @@ export function useAIProvider(
   // Auto-load if configured
   if (autoLoad) {
     isLoading.value = true;
-    newProvider.warmup().catch((err) => {
+    newProvider.warmup().catch(err => {
       error.value = err;
       isLoading.value = false;
     });
@@ -117,4 +121,3 @@ export function useAIProvider(
     dispose,
   };
 }
-
