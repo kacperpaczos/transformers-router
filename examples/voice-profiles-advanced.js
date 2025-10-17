@@ -1,13 +1,22 @@
 /**
  * Advanced Voice Profiles Example
  *
- * Demonstrates the full capabilities of the voice profile system
+ * This example demonstrates the comprehensive capabilities of the voice profile system,
+ * including predefined profiles, custom profile creation, parameter overrides,
+ * and proper error handling.
  */
 
 const { createAIProvider, voiceProfileRegistry } = require('../dist/index');
 
+// Safe console logging for different environments
+const logger = typeof console !== 'undefined' ? console : {
+  log: () => {},
+  error: () => {},
+  warn: () => {}
+};
+
 async function main() {
-  console.log('🎭 Advanced Voice Profiles Example\n');
+  logger.log('=== Advanced Voice Profiles Example ===\n');
 
   // Create AI provider
   const provider = createAIProvider({
@@ -19,40 +28,41 @@ async function main() {
 
   try {
     // Wait for TTS model to load
-    console.log('Loading TTS model...');
+    logger.log('Loading TTS model...');
     await provider.warmup('tts');
+    logger.log('TTS model loaded successfully.\n');
 
     // 1. Explore available voice profiles
-    console.log('📋 Available Voice Profiles:');
+    logger.log('--- Available Voice Profiles ---');
     const allProfiles = voiceProfileRegistry.list();
     allProfiles.forEach(profile => {
-      console.log(`  ${profile.id}: ${profile.name} (${profile.gender})`);
+      logger.log(`  ${profile.id}: ${profile.name} (${profile.gender})`);
     });
-    console.log('');
+    logger.log('');
 
     // 2. Use predefined voice profiles
-    console.log('🎤 Using Predefined Voice Profiles:');
+    logger.log('--- Using Predefined Voice Profiles ---');
 
     const scenarios = [
       { profile: 'male-formal', text: 'Good morning. I am pleased to present our quarterly report.' },
-      { profile: 'male-friendly', text: 'Hey there! How are you doing today?' },
+      { profile: 'male-friendly', text: 'Hello there! How are you doing today?' },
       { profile: 'female-formal', text: 'Ladies and gentlemen, thank you for your attention.' },
-      { profile: 'female-friendly', text: 'Hi! I hope you\'re having a wonderful day!' },
+      { profile: 'female-friendly', text: 'Hello! I hope you are having a wonderful day.' },
     ];
 
     for (const scenario of scenarios) {
-      console.log(`\nUsing ${scenario.profile}:`);
-      console.log(`"${scenario.text}"`);
+      logger.log(`\nTesting ${scenario.profile} profile:`);
+      logger.log(`"${scenario.text}"`);
 
       const audio = await provider.speak(scenario.text, {
         voiceProfile: scenario.profile,
       });
 
-      console.log(`✅ Generated: ${audio.size} bytes`);
+      logger.log(`Generated audio file: ${audio.size} bytes`);
     }
 
     // 3. Create custom voice profiles
-    console.log('\n🛠️ Creating Custom Voice Profiles:');
+    logger.log('\n--- Creating Custom Voice Profiles ---');
 
     // Corporate executive voice
     voiceProfileRegistry.register({
@@ -88,10 +98,10 @@ async function main() {
       description: 'Warm and approachable female voice for customer service',
     });
 
-    console.log('✅ Created custom voice profiles');
+    logger.log('Custom voice profiles created successfully');
 
     // 4. Use custom profiles with parameter overrides
-    console.log('\n🎛️ Using Custom Profiles with Overrides:');
+    logger.log('\n--- Using Custom Profiles with Parameter Overrides ---');
 
     const customScenarios = [
       {
@@ -101,53 +111,60 @@ async function main() {
       },
       {
         profile: 'cheerful-assistant',
-        text: 'I\'m here to help you with anything you need!',
+        text: 'I am here to help you with anything you need.',
         overrides: { speed: 1.2, pitch: 1.1, emotion: 'happy' }
       },
     ];
 
     for (const scenario of customScenarios) {
-      console.log(`\nUsing ${scenario.profile} with overrides:`);
-      console.log(`"${scenario.text}"`);
+      logger.log(`\nTesting ${scenario.profile} profile with parameter overrides:`);
+      logger.log(`"${scenario.text}"`);
 
       const audio = await provider.speak(scenario.text, {
         voiceProfile: scenario.profile,
         ...scenario.overrides,
       });
 
-      console.log(`✅ Generated: ${audio.size} bytes`);
+      logger.log(`Generated audio file: ${audio.size} bytes`);
     }
 
     // 5. Voice profile management
-    console.log('\n📊 Voice Profile Management:');
-    console.log(`Total profiles: ${voiceProfileRegistry.size()}`);
+    logger.log('\n--- Voice Profile Management ---');
+    logger.log(`Total profiles registered: ${voiceProfileRegistry.size()}`);
 
     const maleProfiles = voiceProfileRegistry.listByGender('male');
     const femaleProfiles = voiceProfileRegistry.listByGender('female');
 
-    console.log(`Male profiles: ${maleProfiles.length}`);
-    maleProfiles.forEach(p => console.log(`  - ${p.name}`));
+    logger.log(`Male voice profiles: ${maleProfiles.length}`);
+    maleProfiles.forEach(p => logger.log(`  - ${p.name}`));
 
-    console.log(`Female profiles: ${femaleProfiles.length}`);
-    femaleProfiles.forEach(p => console.log(`  - ${p.name}`));
+    logger.log(`Female voice profiles: ${femaleProfiles.length}`);
+    femaleProfiles.forEach(p => logger.log(`  - ${p.name}`));
 
     // 6. Error handling
-    console.log('\n⚠️ Error Handling:');
+    logger.log('\n--- Error Handling ---');
     try {
-      const audio = await provider.speak('This should fallback to default.', {
+      const audio = await provider.speak('This should fallback to default voice profile.', {
         voiceProfile: 'non-existent-profile',
       });
-      console.log(`✅ Graceful fallback: ${audio.size} bytes`);
+      logger.log(`Graceful fallback successful: ${audio.size} bytes`);
     } catch (error) {
-      console.log(`❌ Error: ${error.message}`);
+      logger.log(`Error handling test: ${error.message}`);
     }
 
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    logger.error(`Error during execution: ${error.message}`);
+    if (error.stack) {
+      logger.error(`Stack trace: ${error.stack}`);
+    }
   } finally {
+    // Clean up resources
     await provider.dispose();
-    console.log('\n✅ Advanced Voice Profiles Example completed!');
+    logger.log('\n=== Advanced Voice Profiles Example completed ===');
   }
 }
 
-main();
+main().catch(error => {
+  logger.error(`Unhandled error: ${error.message}`);
+  process.exit(1);
+});
