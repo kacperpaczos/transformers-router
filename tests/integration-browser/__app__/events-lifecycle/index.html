@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>events-lifecycle</title>
+  <link rel="stylesheet" href="/tests/integration-browser/__assets__/common.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "@huggingface/transformers": "/node_modules/@huggingface/transformers/dist/transformers.min.js",
+        "onnxruntime-web": "/node_modules/onnxruntime-web/dist/ort.min.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="header-nav" style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+    <a href="/tests/integration-browser/__assets__/index.html">← Menu</a>
+    <h2 style="margin:0;">Events: Lifecycle</h2>
+  </div>
+
+  <div id="root" class="panel">
+    <div style="display:flex; gap:8px;">
+      <button class="btn" id="btn-warmup">Warmup</button>
+      <button class="btn" id="btn-unload">Unload</button>
+      <button class="btn" id="btn-dispose">Dispose</button>
+    </div>
+    <pre id="log" style="margin-top:12px; white-space: pre-wrap;"></pre>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
+
+
