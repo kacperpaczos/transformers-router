@@ -9,6 +9,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: 1, // Sequential dla stabilności
   timeout: 300000, // 5 minut na test (ładowanie modeli)
+  testMatch: ['suites/**/*.ts'],
   
   use: {
     baseURL: 'http://localhost:3001',
