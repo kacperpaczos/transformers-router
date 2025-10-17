@@ -2,7 +2,7 @@
  * Vue Composable for AI Provider
  */
 
-import { ref, onUnmounted, type Ref } from 'vue';
+import { ref, shallowRef, markRaw, onUnmounted, type Ref } from 'vue';
 import { AIProvider, createAIProvider } from '../core/AIProvider';
 import type {
   AIProviderConfig,
@@ -31,7 +31,7 @@ export interface UseAIProviderReturn {
 export function useAIProvider(
   config: UseAIProviderOptions = {}
 ): UseAIProviderReturn {
-  const provider = ref<AIProvider | null>(null);
+  const provider = shallowRef<AIProvider | null>(null);
   const isReady = ref(false);
   const isLoading = ref(false);
   const progress = ref<ProgressInfo | null>(null);
@@ -41,7 +41,7 @@ export function useAIProvider(
   const { autoLoad = false, ...providerConfig } = config;
 
   // Initialize provider
-  const newProvider = createAIProvider(providerConfig);
+  const newProvider = markRaw(createAIProvider(providerConfig));
 
   // Set up event listeners
   newProvider.on('progress', data => {
