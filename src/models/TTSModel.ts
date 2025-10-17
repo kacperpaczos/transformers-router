@@ -5,6 +5,7 @@
 import type { TTSConfig, TTSOptions } from '../core/types';
 import { BaseModel } from './BaseModel';
 import { audioConverter } from '../utils/AudioConverter';
+import { voiceProfileRegistry } from '../core/VoiceProfileRegistry';
 
 // Dynamically import Transformers.js
 let transformersModule: typeof import('@huggingface/transformers') | null =
@@ -214,24 +215,89 @@ export class TTSModel extends BaseModel<TTSConfig> {
       // Domyślne speaker embeddings dla SpeechT5, jeśli nie podano
       // (zgodnie z testami integracyjnymi: wektor 512 x 0.5)
       const defaultSpeaker = new Float32Array(512).fill(0.5);
-      const speakerEmbeddings =
-        (options && typeof options === 'object' && options.speaker !== undefined
-          ? options.speaker
-          : this.config.speaker) ?? defaultSpeaker;
+      let speakerEmbeddings: Float32Array = defaultSpeaker;
+      let voiceParams: Record<string, unknown> = {};
 
-      const inferOptions = { speaker_embeddings: speakerEmbeddings } as Record<
-        string,
-        unknown
-      >;
+      // Check for voice profile first
+      const voiceProfileId = options.voiceProfile || this.config.voiceProfile;
+      if (voiceProfileId) {
+        const profile = voiceProfileRegistry.get(voiceProfileId);
+        if (profile) {
+          speakerEmbeddings = new Float32Array(profile.embeddings);
+          voiceParams = { ...profile.parameters };
+
+          if (typeof console !== 'undefined' && console.log) {
+            console.log(
+              '[TTSModel] synthesize(): using voice profile:',
+              profile.name,
+              `(${profile.gender}, ${profile.parameters.style})`
+            );
+          }
+        } else {
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn(
+              '[TTSModel] synthesize(): voice profile not found:',
+              voiceProfileId
+            );
+          }
+        }
+      }
+
+      // Override with direct speaker embeddings if provided
+      if (options.speaker !== undefined) {
+        if (typeof options.speaker === 'string') {
+          // Handle string speaker (not supported in this implementation)
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn(
+              '[TTSModel] synthesize(): string speaker not supported, using default'
+            );
+          }
+        } else {
+          speakerEmbeddings = new Float32Array(options.speaker);
+          if (typeof console !== 'undefined' && console.log) {
+            console.log(
+              '[TTSModel] synthesize(): using direct speaker embeddings'
+            );
+          }
+        }
+      } else if (this.config.speaker !== undefined) {
+        if (typeof this.config.speaker === 'string') {
+          // Handle string speaker (not supported in this implementation)
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn(
+              '[TTSModel] synthesize(): string speaker not supported, using default'
+            );
+          }
+        } else {
+          speakerEmbeddings = new Float32Array(this.config.speaker);
+          if (typeof console !== 'undefined' && console.log) {
+            console.log(
+              '[TTSModel] synthesize(): using config speaker embeddings'
+            );
+          }
+        }
+      }
+
+      // Override voice parameters with options
+      if (options.speed !== undefined) voiceParams.speed = options.speed;
+      if (options.pitch !== undefined) voiceParams.pitch = options.pitch;
+      if (options.emotion !== undefined) voiceParams.emotion = options.emotion;
+      if (options.age !== undefined) voiceParams.age = options.age;
+      if (options.accent !== undefined) voiceParams.accent = options.accent;
+      if (options.style !== undefined) voiceParams.style = options.style;
+
+      const inferOptions = {
+        speaker_embeddings: speakerEmbeddings,
+        ...voiceParams,
+      } as Record<string, unknown>;
+
       if (typeof console !== 'undefined' && console.log) {
-        const speakerType =
-          speakerEmbeddings instanceof Float32Array ||
-          speakerEmbeddings instanceof Float64Array
-            ? 'typed-array'
-            : typeof speakerEmbeddings;
+        const speakerType = 'Float32Array';
         console.log(
           '[TTSModel] synthesize(): using speaker embeddings type:',
-          speakerType
+          speakerType,
+          'with parameters:',
+          voiceParams
         );
       }
 

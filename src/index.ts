@@ -27,6 +27,12 @@ export { EmbeddingModel } from './models/EmbeddingModel';
 export { ModelManager } from './core/ModelManager';
 export { ModelCache } from './core/ModelCache';
 
+// Voice Profile system
+export {
+  VoiceProfileRegistry,
+  voiceProfileRegistry,
+} from './core/VoiceProfileRegistry';
+
 // Types
 export type {
   // Config types
@@ -55,6 +61,14 @@ export type {
   DType,
   EventType,
   EventCallback,
+  // Voice Profile types
+  VoiceGender,
+  VoiceEmotion,
+  VoiceAge,
+  VoiceStyle,
+  VoiceParameters,
+  VoiceProfile,
+  VoiceProfileOptions,
   // OpenAI types
   OpenAIChatCompletionRequest,
   OpenAIChatCompletionResponse,
