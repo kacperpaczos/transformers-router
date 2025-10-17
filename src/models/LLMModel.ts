@@ -37,13 +37,22 @@ export class LLMModel extends BaseModel<LLMConfig> {
     total?: number;
   }) => void): Promise<void> {
     if (this.loaded) {
+      if (typeof console !== 'undefined' && console.log) {
+        console.log('[LLMModel] load(): early-return, already loaded');
+      }
       return;
     }
 
     if (this.loading) {
       // Wait for existing load to complete
+      if (typeof console !== 'undefined' && console.log) {
+        console.log('[LLMModel] load(): waiting for concurrent load');
+      }
       while (this.loading) {
         await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      if (typeof console !== 'undefined' && console.log) {
+        console.log('[LLMModel] load(): concurrent load finished');
       }
       return;
     }
@@ -52,38 +61,114 @@ export class LLMModel extends BaseModel<LLMConfig> {
 
     try {
       const { pipeline, env } = await getTransformers();
+      if (typeof console !== 'undefined' && console.log) {
+        console.log('[LLMModel] load(): transformers loaded');
+      }
 
-      const desiredDevice = (this.config.device as string | undefined) || 'webgpu';
-      const tryOrder = desiredDevice === 'webgpu'
-        ? ['webgpu', 'wasm', 'cpu']
-        : [desiredDevice, ...(desiredDevice !== 'wasm' ? ['wasm'] : []), 'cpu'];
+      const isBrowser = typeof window !== 'undefined' && typeof navigator !== 'undefined';
+      const supportsWebGPU = isBrowser && typeof (navigator as unknown as { gpu?: unknown }).gpu !== 'undefined';
+
+      // Sprawdź realną dostępność adaptera WebGPU (nie tylko obecność API)
+      let webgpuAdapterAvailable = false;
+      if (supportsWebGPU) {
+        try {
+          const navWithGpu = navigator as unknown as { gpu?: { requestAdapter?: () => Promise<unknown> } };
+          const adapter = await (navWithGpu.gpu?.requestAdapter?.() || Promise.resolve(null));
+          webgpuAdapterAvailable = !!adapter;
+        } catch {
+          webgpuAdapterAvailable = false;
+        }
+      }
+
+      // Auto-detect device:
+      // - Browser: prefer WebGPU if available, otherwise WASM; never fall back to CPU in browser
+      // - Node: use provided device or CPU by default
+      const desiredDevice =
+        (this.config.device as string | undefined) || (isBrowser ? (supportsWebGPU ? 'webgpu' : 'wasm') : 'cpu');
+
+      const tryOrder = (() => {
+        if (isBrowser) {
+          if (desiredDevice === 'webgpu') return webgpuAdapterAvailable ? ['webgpu', 'wasm'] : ['wasm'];
+          if (desiredDevice === 'wasm') return ['wasm'];
+          // If someone passed 'cpu' or other in browser, coerce to WASM-only
+          return ['wasm'];
+        }
+        // Node.js environment: allow CPU fallback
+        return desiredDevice === 'webgpu'
+          ? ['webgpu', 'cpu']
+          : [desiredDevice, ...(desiredDevice !== 'cpu' ? ['cpu'] : [])];
+      })();
+
+      if (typeof console !== 'undefined' && console.log) {
+        console.log('[LLMModel] load(): env', {
+          isBrowser,
+          supportsWebGPU,
+          desiredDevice,
+          tryOrder,
+        });
+      }
 
       const dtype = this.config.dtype || 'fp32';
+      if (typeof console !== 'undefined' && console.log) {
+        console.log('[LLMModel] load(): dtype resolved:', dtype);
+      }
 
       let lastError: Error | null = null;
       for (const dev of tryOrder) {
         try {
-          // Optimize WASM backend if used
-          if (dev === 'wasm' && env?.backends?.onnx?.wasm) {
-            try {
-              env.backends.onnx.wasm.simd = true;
-              const cores = (typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 2) || 2;
-              env.backends.onnx.wasm.numThreads = Math.min(4, Math.max(1, cores - 1));
-            } catch {}
+          if (typeof console !== 'undefined' && console.log) {
+            console.log('[LLMModel] attempting device:', dev);
           }
 
+          // Optimize WASM backend if used
+          if (env?.backends?.onnx) {
+            // Podpowiedź backendu dla ORT (jeśli wspierane)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const onnxBackends = env.backends.onnx as any;
+            if (dev === 'wasm') {
+              if ('backendHint' in onnxBackends) onnxBackends.backendHint = 'wasm';
+              if (onnxBackends.wasm) {
+                onnxBackends.wasm.simd = true;
+                const cores = (typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 2) || 2;
+                onnxBackends.wasm.numThreads = Math.min(4, Math.max(1, cores - 1));
+                if (typeof console !== 'undefined' && console.log) {
+                  console.log('[LLMModel] WASM config:', {
+                    backendHint: onnxBackends.backendHint,
+                    simd: onnxBackends.wasm.simd,
+                    numThreads: onnxBackends.wasm.numThreads,
+                  });
+                }
+              }
+            } else if (dev === 'webgpu') {
+              if ('backendHint' in onnxBackends) onnxBackends.backendHint = 'webgpu';
+              if (typeof console !== 'undefined' && console.log) {
+                console.log('[LLMModel] WebGPU config:', {
+                  backendHint: onnxBackends.backendHint,
+                  adapterAvailable: webgpuAdapterAvailable,
+                });
+              }
+            }
+          }
+
+          // Przekazuj dokładnie wybrany backend: w przeglądarce akceptowane są 'webgpu' lub 'wasm'
+          const pipelineDevice = dev as unknown as 'webgpu' | 'wasm' | 'gpu' | 'cpu';
           this.pipeline = await pipeline('text-generation', this.config.model, {
             dtype,
-            // Transformers.js akceptuje 'webgpu', 'gpu', 'cpu'; w projekcie używamy też 'wasm' → ORT ustawia CPU/WASM
-            device: dev as unknown as 'cpu' | 'gpu' | 'webgpu',
+            device: pipelineDevice,
             progress_callback: progressCallback,
           });
 
           this.loaded = true;
+          if (typeof console !== 'undefined' && console.log) {
+            console.log('[LLMModel] loaded successfully with device:', dev);
+          }
           lastError = null;
           break;
         } catch (e) {
           lastError = e instanceof Error ? e : new Error(String(e));
+          if (typeof console !== 'undefined' && console.log) {
+            console.log('[LLMModel] device failed:', dev, '| error:', (lastError as Error).message);
+          }
           // Próbuj kolejnego urządzenia
         }
       }
@@ -98,6 +183,9 @@ export class LLMModel extends BaseModel<LLMConfig> {
       );
     } finally {
       this.loading = false;
+      if (typeof console !== 'undefined' && console.log) {
+        console.log('[LLMModel] load(): finished, loaded=', this.loaded);
+      }
     }
   }
 
