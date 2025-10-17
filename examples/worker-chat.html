@@ -246,7 +246,7 @@
         
         // Load model
         provider.on('ready', () => {
-            addMessage('✅ Model załadowany! Możesz zacząć rozmowę.', 'assistant');
+            addMessage('Model loaded successfully! You can start chatting.', 'assistant');
             userInput.disabled = false;
             sendBtn.disabled = false;
             warmupBtn.disabled = true;
@@ -262,7 +262,7 @@
         warmupBtn.addEventListener('click', () => {
             warmupBtn.disabled = true;
             warmupBtn.textContent = 'Loading...';
-            addMessage('🔄 Ładowanie modelu...', 'assistant');
+            addMessage('Loading model...', 'assistant');
             provider.warmup();
         });
         

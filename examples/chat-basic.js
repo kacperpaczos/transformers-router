@@ -5,7 +5,7 @@
  * including simple message exchange, chat with history, and token usage tracking.
  */
 
-const { createAIProvider } = require('../dist/index');
+import { createAIProvider } from '../dist/index.js';
 
 // Safe console logging for different environments
 const logger = typeof console !== 'undefined' ? console : {

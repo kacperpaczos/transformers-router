@@ -5,7 +5,7 @@
  * showcasing text generation, chat with history, and text-to-speech capabilities.
  */
 
-const { createAIProvider } = require('../dist/index');
+import { createAIProvider } from '../dist/index.js';
 
 // Check if we're in a Node.js environment where console might not be available
 const logger = typeof console !== 'undefined' ? console : {

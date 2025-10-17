@@ -23,10 +23,10 @@ async function voiceProfilesExample() {
     // Warm up the TTS model
     console.log('Loading TTS model...');
     await provider.warmup('tts');
-    console.log('✅ TTS model loaded\n');
+    console.log('TTS model loaded successfully.\n');
 
     // 1. List available voice profiles
-    console.log('📋 Available Voice Profiles:');
+    console.log('--- Available Voice Profiles ---');
     const allProfiles = voiceProfileRegistry.list();
     allProfiles.forEach(profile => {
       console.log(`  - ${profile.id}: ${profile.name} (${profile.gender}, ${profile.parameters.style})`);
@@ -42,7 +42,7 @@ async function voiceProfilesExample() {
       const audio = await provider.speak(`Hello, I'm using the ${profile.name} voice profile.`, {
         voiceProfile: profile.id,
       });
-      console.log(`  ✅ Generated audio: ${audio.size} bytes`);
+      console.log(`  Generated audio: ${audio.size} bytes`);
     }
     console.log('');
 
@@ -55,7 +55,7 @@ async function voiceProfilesExample() {
       const audio = await provider.speak(`Hello, I'm using the ${profile.name} voice profile.`, {
         voiceProfile: profile.id,
       });
-      console.log(`  ✅ Generated audio: ${audio.size} bytes`);
+      console.log(`  Generated audio: ${audio.size} bytes`);
     }
     console.log('');
 
@@ -140,21 +140,21 @@ async function voiceProfilesExample() {
     console.log('');
 
     // 7. Error handling
-    console.log('⚠️ Error Handling:');
+    console.log('--- Error Handling ---');
     try {
       const audio = await provider.speak('This should fallback to default voice.', {
         voiceProfile: 'non-existent-profile',
       });
-      console.log(`  ✅ Graceful fallback: ${audio.size} bytes`);
+      console.log(`  Graceful fallback: ${audio.size} bytes`);
     } catch (error) {
-      console.log(`  ❌ Error: ${error.message}`);
+      console.log(`  Error: ${error.message}`);
     }
     console.log('');
 
-    console.log('🎉 Voice Profiles Example completed successfully!');
+    console.log('Voice Profiles Example completed successfully!');
 
   } catch (error) {
-    console.error('❌ Error in voice profiles example:', error);
+    console.error('Error in voice profiles example:', error);
   } finally {
     // Clean up
     await provider.dispose();

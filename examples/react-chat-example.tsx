@@ -58,7 +58,7 @@ export function ChatApp() {
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
-      <h1>🤖 React Chat z Transformers.js</h1>
+      <h1>React Chat with Transformers.js</h1>
       
       {/* Status */}
       <div style={{ 
@@ -77,10 +77,10 @@ export function ChatApp() {
             )}
           </div>
         )}
-        {isReady && <strong>✅ Model gotowy</strong>}
+        {isReady && <strong>Model ready</strong>}
         {providerError && (
           <div style={{ color: '#721c24' }}>
-            ❌ Błąd: {providerError.message}
+            Error: {providerError.message}
           </div>
         )}
       </div>

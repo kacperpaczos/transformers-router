@@ -6,7 +6,7 @@
  * and proper error handling.
  */
 
-const { createAIProvider, voiceProfileRegistry } = require('../dist/index');
+import { createAIProvider, voiceProfileRegistry } from '../dist/index.js';
 
 // Safe console logging for different environments
 const logger = typeof console !== 'undefined' ? console : {
