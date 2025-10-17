@@ -108,8 +108,12 @@ export class AudioConverter {
 
     // Use Transformers.js read_audio for proper WAV/audio decoding
     // This handles resampling, channel conversion, etc.
-    // Note: read_audio expects ArrayBuffer in some versions
-    const audioData = await read_audio(arrayBuffer as any, sampleRate);
+    // Note: read_audio expects a URL or file path
+    const audioData = await read_audio(
+      // Create a blob URL for the ArrayBuffer
+      URL.createObjectURL(new Blob([arrayBuffer])),
+      sampleRate
+    );
 
     return audioData;
   }

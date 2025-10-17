@@ -11,6 +11,24 @@ import type {
 } from '../core/types';
 import { BaseModel } from './BaseModel';
 
+// Type definitions for LLM pipeline components
+interface LLMTokenizer {
+  eos_token_id?: number;
+  pad_token_id?: number;
+  chat_template?: string;
+  decode?: (tokens: number[]) => string;
+  encode?: (text: string) => number[];
+}
+
+interface LLMModelConfig {
+  eos_token_id?: number;
+  pad_token_id?: number;
+}
+
+interface LLMPipelineModel {
+  config?: LLMModelConfig;
+}
+
 // Dynamically import Transformers.js to avoid bundling issues
 let transformersModule: typeof import('@huggingface/transformers') | null =
   null;
@@ -134,8 +152,15 @@ export class LLMModel extends BaseModel<LLMConfig> {
           // Optimize WASM backend if used
           if (env?.backends?.onnx) {
             // Podpowiedź backendu dla ORT (jeśli wspierane)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const onnxBackends = env.backends.onnx as any;
+            interface ONNXBackends {
+              backendHint?: string;
+              wasm?: {
+                simd?: boolean;
+                numThreads?: number;
+              };
+            }
+
+            const onnxBackends = env.backends.onnx as ONNXBackends;
             if (dev === 'wasm') {
               if ('backendHint' in onnxBackends)
                 onnxBackends.backendHint = 'wasm';
@@ -231,8 +256,8 @@ export class LLMModel extends BaseModel<LLMConfig> {
         input: Message[] | string,
         opts?: unknown
       ): Promise<Array<{ generated_text: Message[] | string }>>;
-      tokenizer?: any;
-      model?: any; // Dodaj dla dostępu do config
+      tokenizer?: LLMTokenizer;
+      model?: LLMPipelineModel;
     };
 
     // Convert string to messages array
@@ -359,16 +384,18 @@ export class LLMModel extends BaseModel<LLMConfig> {
       opts?: unknown
     ) => Promise<Array<{ generated_text: string }>>;
 
-    // Derive special tokens
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const anyPipeline = this.getPipeline() as any;
+    // Derive special tokens using typed pipeline
+    const typedPipeline = this.getPipeline() as {
+      tokenizer?: LLMTokenizer;
+      model?: LLMPipelineModel;
+    };
     const eosId =
-      anyPipeline?.tokenizer?.eos_token_id ??
-      anyPipeline?.model?.config?.eos_token_id ??
+      typedPipeline?.tokenizer?.eos_token_id ??
+      typedPipeline?.model?.config?.eos_token_id ??
       50256;
     const padId =
-      anyPipeline?.tokenizer?.pad_token_id ??
-      anyPipeline?.model?.config?.pad_token_id ??
+      typedPipeline?.tokenizer?.pad_token_id ??
+      typedPipeline?.model?.config?.pad_token_id ??
       eosId;
 
     const generationOptions = {
@@ -406,10 +433,8 @@ export class LLMModel extends BaseModel<LLMConfig> {
         input: Message[] | string,
         opts?: unknown
       ): Promise<Array<{ generated_text: Message[] | string }>>;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tokenizer: any;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      model?: any;
+      tokenizer: LLMTokenizer;
+      model?: LLMPipelineModel;
     };
 
     const messageArray: Message[] = Array.isArray(messages)
