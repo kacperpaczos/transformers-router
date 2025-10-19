@@ -1,4 +1,4 @@
-function attachToolbar() {
+export function attachToolbar() {
   const root = document.getElementById('root');
   if (!root) return;
 
@@ -65,7 +65,8 @@ export async function initProviderWithUI({ modality = 'llm', config }) {
 
   const { createAIProvider } = await import('/dist/index.js');
   const providerConfig = {};
-  if (modality === 'llm') providerConfig.llm = config;
+  // Ustaw domyślne skalowanie/quantization dla LLM, jeśli nie podano
+  if (modality === 'llm') providerConfig.llm = { dtype: 'q4', ...(config || {}) };
   if (modality === 'stt') providerConfig.stt = config;
   if (modality === 'tts') providerConfig.tts = config;
   if (modality === 'embedding') providerConfig.embedding = config;

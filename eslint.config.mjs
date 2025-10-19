@@ -7,7 +7,7 @@ export default [
   eslint.configs.recommended,
   {
     files: ['src/**/*.ts'],
-    ignores: ['src/**/*.test.ts'],
+    ignores: ['src/**/*.test.ts', 'src/ui/**/*'],
     languageOptions: {
       parser: tsparser,
       parserOptions: {

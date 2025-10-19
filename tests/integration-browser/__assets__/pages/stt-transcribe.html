@@ -30,7 +30,7 @@
     </div>
 
     <div style="margin-top:12px;">
-      <button class="btn" id="transcribe-btn">Transcribe sample</button>
+      <button class="btn" id="transcribe-btn">Transcribe MP3</button>
       <pre id="transcription" style="white-space: pre-wrap; margin-top:10px;"></pre>
     </div>
   </div>
@@ -47,7 +47,7 @@
     const out = document.getElementById('transcription');
     btn?.addEventListener('click', async () => {
       try {
-        const text = await provider.listen('/tests/fixtures/audio/hello-world-en.wav');
+        const text = await provider.listen('/tests/fixtures/audio/She%E2%80%99s%20been%20working%20here%20long%20enough%20to%20know%20what%E2%80%99s%20what.mp3');
         out.textContent = text || '(empty)';
       } catch (e) {
         out.textContent = 'Error: ' + (e?.message || String(e));
