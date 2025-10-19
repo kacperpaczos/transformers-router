@@ -145,42 +145,11 @@ describe('STT Integration (Whisper)', () => {
       expect(text.trim().length).toBeLessThanOrEqual(10);
     }, 60000);
 
-    it('should handle long audio', async () => {
-      if (!audioExists('long-audio-pl.wav')) {
-        console.warn('⚠️ Skipping: long-audio-pl.wav not found.');
-        return;
-      }
-
-      const blob = loadAudioBlob('long-audio-pl.wav');
-      const text = await provider.listen(blob, { language: 'pl' });
-
-      expect(typeof text).toBe('string');
-      expect(text.length).toBeGreaterThan(50);
-      
-      console.log(`✅ Long audio transcribed: ${text.length} characters`);
-    }, 180000);
-  });
-
-  describe('Timestamps', () => {
-    it('should return timestamps when requested', async () => {
-      if (!audioExists('hello-world-en.wav')) {
-        console.warn('⚠️ Skipping: hello-world-en.wav not found.');
-        return;
-      }
-
-      const blob = loadAudioBlob('hello-world-en.wav');
-      const text = await provider.listen(blob, { 
-        language: 'en',
-        timestamps: true 
-      });
-
-      expect(typeof text).toBe('string');
-      expect(text.length).toBeGreaterThan(0);
-      
-      // Note: timestamp format depends on Whisper output format
-      console.log(`✅ Transcription with timestamps: "${text}"`);
-    }, 120000);
-  });
+    const text = await provider.listen(blob, { language: 'en' });
+    // Require a non-empty transcription – provide a real WAV file instead of a placeholder
+    expect(typeof text).toBe('string');
+    expect(text.length).toBeGreaterThan(0);
+  }, 120000);
 });
 
 

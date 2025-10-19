@@ -155,6 +155,8 @@ export class STTModel extends BaseModel<STTConfig> {
             }
           }
 
+          const pipelineDevice = dev === 'wasm' ? 'cpu' : (dev as 'cpu' | 'gpu' | 'webgpu');
+          console.log('[transformers-router] load STT try', { device: dev, dtype });
           this.pipeline = await pipeline(
             'automatic-speech-recognition',
             this.config.model,
