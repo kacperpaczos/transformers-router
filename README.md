@@ -853,19 +853,6 @@ npm run test:integration:ui
 3. **Cache models** - Models are automatically cached after first load
 4. **WebGPU** - Use `device: 'webgpu'` in browsers for GPU acceleration
 
-## Migration from 1.x
-
-The legacy `TransformersRouter` is still available for backward compatibility:
-
-```typescript
-import { TransformersRouter } from 'transformers-router';
-
-const router = new TransformersRouter();
-router.addRoute('/hello', (name) => `Hello, ${name}!`);
-const result = await router.execute('/hello', 'World');
-```
-
-However, we recommend migrating to the new `AIProvider` API.
 
 ## Roadmap
 

@@ -1,10 +1,10 @@
 /**
  * Audio Converter Utility - handles conversion between audio formats
  * Follows Single Responsibility Principle
- * 
+ *
  * This utility provides a centralized way to convert audio between different formats,
  * ensuring consistency across all AI models that handle audio data.
- * 
+ *
  * @author transformers-router
  * @version 1.0.0
  */
@@ -23,7 +23,7 @@ export interface AudioMetadata {
 /**
  * Converts various audio formats to Float32Array for ML models
  * Uses @huggingface/transformers read_audio for Node.js compatibility
- * 
+ *
  * @example
  * ```typescript
  * const converter = new AudioConverter();
@@ -31,7 +31,9 @@ export interface AudioMetadata {
  * ```
  */
 export class AudioConverter {
-  private transformersModule: typeof import('@huggingface/transformers') | null = null;
+  private transformersModule:
+    | typeof import('@huggingface/transformers')
+    | null = null;
 
   private async getTransformers() {
     if (!this.transformersModule) {
@@ -42,19 +44,19 @@ export class AudioConverter {
 
   /**
    * Convert audio input to Float32Array
-   * 
+   *
    * @param audio - Audio input in various formats (Blob, Float32Array, Float64Array, URL)
    * @param targetSampleRate - Target sample rate (default: 16000 for Whisper)
    * @returns Float32Array audio data ready for ML models
-   * 
+   *
    * @example
    * ```typescript
    * // From Blob
    * const audioData = await converter.toFloat32Array(audioBlob, 16000);
-   * 
+   *
    * // From URL
    * const audioData = await converter.toFloat32Array('https://example.com/audio.wav');
-   * 
+   *
    * // Already Float32Array (passthrough)
    * const audioData = await converter.toFloat32Array(existingFloat32Array);
    * ```
@@ -89,7 +91,7 @@ export class AudioConverter {
   /**
    * Convert Blob to Float32Array
    * Uses Transformers.js read_audio for proper decoding
-   * 
+   *
    * @private
    * @param blob - Audio blob (WAV, MP3, etc.)
    * @param sampleRate - Target sample rate
@@ -100,21 +102,25 @@ export class AudioConverter {
     sampleRate: number
   ): Promise<Float32Array> {
     const { read_audio } = await this.getTransformers();
-    
+
     // Convert Blob to ArrayBuffer
     const arrayBuffer = await blob.arrayBuffer();
-    
+
     // Use Transformers.js read_audio for proper WAV/audio decoding
     // This handles resampling, channel conversion, etc.
-    // Note: read_audio expects ArrayBuffer in some versions
-    const audioData = await read_audio(arrayBuffer as any, sampleRate);
-    
+    // Note: read_audio expects a URL or file path
+    const audioData = await read_audio(
+      // Create a blob URL for the ArrayBuffer
+      URL.createObjectURL(new Blob([arrayBuffer])),
+      sampleRate
+    );
+
     return audioData;
   }
 
   /**
    * Load audio from URL
-   * 
+   *
    * @private
    * @param url - Audio file URL
    * @param sampleRate - Target sample rate
@@ -130,7 +136,7 @@ export class AudioConverter {
 
   /**
    * Type guard for Blob
-   * 
+   *
    * @private
    * @param input - Unknown input to check
    * @returns true if input is a Blob-like object
@@ -147,12 +153,12 @@ export class AudioConverter {
   /**
    * Convert Float32Array to WAV Blob
    * Useful for TTS output
-   * 
+   *
    * @param audioData - Float32Array audio data
    * @param sampleRate - Sample rate of audio data
    * @param options - WAV encoding options
    * @returns WAV format Blob
-   * 
+   *
    * @example
    * ```typescript
    * const wavBlob = converter.toWavBlob(audioData, 22050, {
@@ -179,7 +185,7 @@ export class AudioConverter {
     this.writeString(view, 0, 'RIFF');
     view.setUint32(4, 36 + dataLength, true);
     this.writeString(view, 8, 'WAVE');
-    
+
     // fmt chunk
     this.writeString(view, 12, 'fmt ');
     view.setUint32(16, 16, true); // fmt chunk size
@@ -189,7 +195,7 @@ export class AudioConverter {
     view.setUint32(28, sampleRate * blockAlign, true);
     view.setUint16(32, blockAlign, true);
     view.setUint16(34, bitDepth, true);
-    
+
     // data chunk
     this.writeString(view, 36, 'data');
     view.setUint32(40, dataLength, true);
@@ -197,7 +203,7 @@ export class AudioConverter {
     // Audio samples
     const volume = bitDepth === 16 ? 0x7fff : 0x7fffffff;
     let offset = 44;
-    
+
     for (let i = 0; i < audioData.length; i++) {
       const sample = Math.max(-1, Math.min(1, audioData[i]));
       if (bitDepth === 16) {
@@ -214,7 +220,7 @@ export class AudioConverter {
 
   /**
    * Write string to DataView at specified offset
-   * 
+   *
    * @private
    * @param view - DataView to write to
    * @param offset - Offset in bytes

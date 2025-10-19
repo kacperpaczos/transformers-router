@@ -138,7 +138,7 @@ export class ModelCache {
    */
   getByModality(modality: Modality): CachedModel[] {
     return Array.from(this.cache.values()).filter(
-      (model) => model.modality === modality
+      model => model.modality === modality
     );
   }
 
@@ -160,7 +160,6 @@ export class ModelCache {
       }
     }
 
-    keysToDelete.forEach((key) => this.cache.delete(key));
+    keysToDelete.forEach(key => this.cache.delete(key));
   }
 }
-

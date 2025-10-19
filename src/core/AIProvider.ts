@@ -44,10 +44,15 @@ export class AIProvider {
     options: ChatOptions = {}
   ): Promise<ChatResponse> {
     if (!this.config.llm) {
-      throw new Error('LLM not configured. Please provide llm config in AIProvider constructor.');
+      throw new Error(
+        'LLM not configured. Please provide llm config in AIProvider constructor.'
+      );
     }
 
-    const model = await this.modelManager.getOrLoadModel('llm', this.config.llm);
+    const model = await this.modelManager.getOrLoadModel(
+      'llm',
+      this.config.llm
+    );
     return (model as LLMModel).chat(messages, options);
   }
 
@@ -62,7 +67,10 @@ export class AIProvider {
       throw new Error('LLM not configured');
     }
 
-    const model = await this.modelManager.getOrLoadModel('llm', this.config.llm);
+    const model = await this.modelManager.getOrLoadModel(
+      'llm',
+      this.config.llm
+    );
     return (model as LLMModel).complete(prompt, options);
   }
 
@@ -77,7 +85,10 @@ export class AIProvider {
       throw new Error('LLM not configured');
     }
 
-    const model = await this.modelManager.getOrLoadModel('llm', this.config.llm);
+    const model = await this.modelManager.getOrLoadModel(
+      'llm',
+      this.config.llm
+    );
     yield* (model as LLMModel).stream(messages, options);
   }
 
@@ -88,10 +99,15 @@ export class AIProvider {
    */
   async speak(text: string, options: TTSOptions = {}): Promise<Blob> {
     if (!this.config.tts) {
-      throw new Error('TTS not configured. Please provide tts config in AIProvider constructor.');
+      throw new Error(
+        'TTS not configured. Please provide tts config in AIProvider constructor.'
+      );
     }
 
-    const model = await this.modelManager.getOrLoadModel('tts', this.config.tts);
+    const model = await this.modelManager.getOrLoadModel(
+      'tts',
+      this.config.tts
+    );
     return (model as TTSModel).synthesize(text, options);
   }
 
@@ -103,10 +119,15 @@ export class AIProvider {
     options: STTOptions = {}
   ): Promise<string> {
     if (!this.config.stt) {
-      throw new Error('STT not configured. Please provide stt config in AIProvider constructor.');
+      throw new Error(
+        'STT not configured. Please provide stt config in AIProvider constructor.'
+      );
     }
 
-    const model = await this.modelManager.getOrLoadModel('stt', this.config.stt);
+    const model = await this.modelManager.getOrLoadModel(
+      'stt',
+      this.config.stt
+    );
     return (model as STTModel).transcribe(audio, options);
   }
 
@@ -120,7 +141,9 @@ export class AIProvider {
     options: EmbeddingOptions = {}
   ): Promise<number[][]> {
     if (!this.config.embedding) {
-      throw new Error('Embedding not configured. Please provide embedding config in AIProvider constructor.');
+      throw new Error(
+        'Embedding not configured. Please provide embedding config in AIProvider constructor.'
+      );
     }
 
     const model = await this.modelManager.getOrLoadModel(
@@ -301,4 +324,3 @@ export class AIProvider {
 export function createAIProvider(config: AIProviderConfig = {}): AIProvider {
   return new AIProvider(config);
 }
-

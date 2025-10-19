@@ -2,7 +2,10 @@
 export { AIProvider, createAIProvider } from './core/AIProvider';
 
 // Web Workers Support (Phase 2)
-export { AIProviderWorker, createAIProviderWorker } from './workers/AIProviderWorker';
+export {
+  AIProviderWorker,
+  createAIProviderWorker,
+} from './workers/AIProviderWorker';
 export { WorkerPool } from './workers/WorkerPool';
 
 // Adapters
@@ -23,6 +26,12 @@ export { EmbeddingModel } from './models/EmbeddingModel';
 // Core classes
 export { ModelManager } from './core/ModelManager';
 export { ModelCache } from './core/ModelCache';
+
+// Voice Profile system
+export {
+  VoiceProfileRegistry,
+  voiceProfileRegistry,
+} from './core/VoiceProfileRegistry';
 
 // Types
 export type {
@@ -52,6 +61,14 @@ export type {
   DType,
   EventType,
   EventCallback,
+  // Voice Profile types
+  VoiceGender,
+  VoiceEmotion,
+  VoiceAge,
+  VoiceStyle,
+  VoiceParameters,
+  VoiceProfile,
+  VoiceProfileOptions,
   // OpenAI types
   OpenAIChatCompletionRequest,
   OpenAIChatCompletionResponse,
@@ -60,8 +77,9 @@ export type {
 } from './core/types';
 
 // Utility types and classes
-export type { AudioInput, AudioOutput, AudioMetadata } from './utils/AudioConverter';
+export type {
+  AudioInput,
+  AudioOutput,
+  AudioMetadata,
+} from './utils/AudioConverter';
 export { audioConverter, AudioConverter } from './utils/AudioConverter';
-
-// Legacy router (for backward compatibility)
-export { TransformersRouter, Route, RouterOptions } from './router';

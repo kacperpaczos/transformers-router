@@ -51,7 +51,7 @@ export class EventEmitter {
   emit<T extends EventType>(event: T, data: EventDataMap[T]): void {
     const callbacks = this.events.get(event);
     if (callbacks) {
-      callbacks.forEach((callback) => {
+      callbacks.forEach(callback => {
         try {
           callback(data);
         } catch (error) {
@@ -86,4 +86,3 @@ export class EventEmitter {
     return this.listenerCount(event) > 0;
   }
 }
-

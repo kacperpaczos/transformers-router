@@ -19,13 +19,15 @@ export abstract class BaseModel<TConfig extends ModelConfig = ModelConfig> {
   /**
    * Load the model
    */
-  abstract load(progressCallback?: (progress: {
-    status: string;
-    file?: string;
-    progress?: number;
-    loaded?: number;
-    total?: number;
-  }) => void): Promise<void>;
+  abstract load(
+    progressCallback?: (progress: {
+      status: string;
+      file?: string;
+      progress?: number;
+      loaded?: number;
+      total?: number;
+    }) => void
+  ): Promise<void>;
 
   /**
    * Unload the model and free resources
@@ -99,7 +101,7 @@ export abstract class BaseModel<TConfig extends ModelConfig = ModelConfig> {
 
     // Wait for loading to complete if in progress
     while (this.loading) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     if (!this.loaded) {
@@ -107,4 +109,3 @@ export abstract class BaseModel<TConfig extends ModelConfig = ModelConfig> {
     }
   }
 }
-

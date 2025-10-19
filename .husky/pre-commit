@@ -1,0 +1,2 @@
+# Uruchom ESLint i Prettier na staged plikach
+npx lint-staged

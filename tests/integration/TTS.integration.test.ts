@@ -2,7 +2,7 @@
  * Integration tests for TTS - real model synth producing WAV
  */
 
-import { createAIProvider } from '../../src/core/AIProvider';
+import { createAIProvider, voiceProfileRegistry } from '../../src/core/AIProvider';
 
 function bufferStartsWithRIFF(buffer: ArrayBuffer): boolean {
   const view = new DataView(buffer);
@@ -99,6 +99,98 @@ describe('TTS Integration (SpeechT5)', () => {
       expect(dataMarker).toBe('data');
       
       console.log('✅ Valid WAV structure confirmed');
+    }, 180000);
+  });
+
+  describe('Voice Profile Tests', () => {
+    it('should use male formal voice profile', async () => {
+      const blob = await provider.speak('Hello from male formal voice', {
+        voiceProfile: 'male-formal',
+      });
+
+      expect(blob).toBeInstanceOf(Blob);
+      expect(blob.size).toBeGreaterThan(1000);
+      
+      const buf = await blob.arrayBuffer();
+      expect(bufferStartsWithRIFF(buf)).toBe(true);
+      
+      console.log(`✅ Male formal voice: ${buf.byteLength} bytes`);
+    }, 180000);
+
+    it('should use female friendly voice profile', async () => {
+      const blob = await provider.speak('Hello from female friendly voice', {
+        voiceProfile: 'female-friendly',
+      });
+
+      expect(blob).toBeInstanceOf(Blob);
+      expect(blob.size).toBeGreaterThan(1000);
+      
+      const buf = await blob.arrayBuffer();
+      expect(bufferStartsWithRIFF(buf)).toBe(true);
+      
+      console.log(`✅ Female friendly voice: ${buf.byteLength} bytes`);
+    }, 180000);
+
+    it('should override voice profile parameters', async () => {
+      const blob = await provider.speak('Hello with custom parameters', {
+        voiceProfile: 'male-neutral',
+        speed: 1.5,
+        pitch: 0.8,
+        emotion: 'happy',
+      });
+
+      expect(blob).toBeInstanceOf(Blob);
+      expect(blob.size).toBeGreaterThan(1000);
+      
+      const buf = await blob.arrayBuffer();
+      expect(bufferStartsWithRIFF(buf)).toBe(true);
+      
+      console.log(`✅ Custom parameters voice: ${buf.byteLength} bytes`);
+    }, 180000);
+
+    it('should handle non-existent voice profile gracefully', async () => {
+      const blob = await provider.speak('Hello with unknown profile', {
+        voiceProfile: 'non-existent-profile',
+      });
+
+      expect(blob).toBeInstanceOf(Blob);
+      expect(blob.size).toBeGreaterThan(1000);
+      
+      const buf = await blob.arrayBuffer();
+      expect(bufferStartsWithRIFF(buf)).toBe(true);
+      
+      console.log(`✅ Fallback voice (unknown profile): ${buf.byteLength} bytes`);
+    }, 180000);
+  });
+
+  describe('Custom Voice Profile Tests', () => {
+    it('should use custom voice profile', async () => {
+      // Register a custom voice profile
+      voiceProfileRegistry.register({
+        id: 'test-custom-voice',
+        name: 'Test Custom Voice',
+        gender: 'female',
+        embeddings: new Float32Array(512).fill(0.6),
+        parameters: {
+          pitch: 1.2,
+          speed: 0.9,
+          emotion: 'happy',
+          style: 'friendly',
+        },
+        description: 'A test custom voice profile',
+      });
+
+      const blob = await provider.speak('Hello from custom voice', {
+        voiceProfile: 'test-custom-voice',
+      });
+
+      expect(blob).toBeInstanceOf(Blob);
+      expect(blob.size).toBeGreaterThan(1000);
+      
+      const buf = await blob.arrayBuffer();
+      expect(bufferStartsWithRIFF(buf)).toBe(true);
+      
+      console.log(`✅ Custom voice profile: ${buf.byteLength} bytes`);
     }, 180000);
   });
 
