@@ -34,9 +34,10 @@ test.describe.serial('@stt STT suite — jedna strona, wiele testów', () => {
     expect(typeof result.text).toBe('string');
   });
 
-  test('transkrybuje z URL fixtury', async () => {
+  test('transkrybuje z URL fixtury (MP3)', async () => {
     const text = await page.evaluate(async () => {
-      return (window as any).app.transcribe('/tests/fixtures/audio/hello-world-en.wav');
+      // Używamy pliku MP3 zamiast WAV
+      return (window as any).app.transcribe('/tests/integration-browser/__assets__/audio/She’s been working here long enough to know what’s what.mp3');
     });
     expect(typeof text).toBe('string');
     expect(text.length).toBeGreaterThan(0);

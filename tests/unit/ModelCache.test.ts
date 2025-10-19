@@ -1,4 +1,4 @@
-import { ModelCache } from '../../src/core/ModelCache';
+import { ModelCache } from '../../src/app/cache/ModelCache';
 import type { LLMConfig } from '../../src/core/types';
 
 describe('ModelCache', () => {

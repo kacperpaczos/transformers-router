@@ -3,13 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>react-chat-app</title>
+  <title>events-lifecycle</title>
   <link rel="stylesheet" href="/tests/integration-browser/__assets__/common.css">
   <script type="importmap">
     {
       "imports": {
-        "react": "https://esm.sh/react@18",
-        "react-dom/client": "https://esm.sh/react-dom@18/client",
         "@huggingface/transformers": "/node_modules/@huggingface/transformers/dist/transformers.min.js",
         "onnxruntime-web": "/node_modules/onnxruntime-web/dist/ort.min.js"
       }
@@ -19,10 +17,26 @@
 <body>
   <div class="header-nav" style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
     <button class="btn" onclick="window.location.href='/tests/integration-browser/__assets__/index.html'">← Back to Menu</button>
-    <h2 style="margin:0;">React Chat App</h2>
+    <h2 style="margin:0;">Events Lifecycle Testing</h2>
   </div>
 
-  <div id="root" class="panel"></div>
+  <div class="status-row">
+    <div data-testid="status">idle</div>
+    <div data-testid="file">-</div>
+    <div data-testid="progress">0</div>
+  </div>
+  <div class="progressbar">
+    <div class="progressbar__fill"></div>
+  </div>
+
+  <div id="root" class="panel">
+    <div style="display:flex; gap:8px;">
+      <button class="btn" id="btn-warmup">Warmup</button>
+      <button class="btn" id="btn-unload">Unload</button>
+      <button class="btn" id="btn-dispose">Dispose</button>
+    </div>
+    <pre id="log" style="margin-top:12px; white-space: pre-wrap;"></pre>
+  </div>
 
   <script type="module" src="./main.js"></script>
 </body>

@@ -16,20 +16,53 @@
 </head>
 <body>
   <div class="header-nav" style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-    <a href="/tests/integration-browser/__assets__/index.html">← Menu</a>
+    <button class="btn" onclick="window.location.href='/tests/integration-browser/__assets__/index.html'">← Back to Menu</button>
     <h2 style="margin:0;">Config Multiple Modalities</h2>
   </div>
 
   <div id="root" class="panel">
-    <div class="status-row">
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
       <button class="btn" data-testid="start-warmup">Warmup ALL</button>
-      <div data-testid="status">idle</div>
-      <div data-testid="file">-</div>
-      <div data-testid="progress">0</div>
+      <span id="overall-status">idle</span>
     </div>
 
-    <div class="progressbar">
-      <div class="progressbar__fill"></div>
+    <div style="display:grid; gap:12px;">
+      <div>
+        <strong>LLM</strong>
+        <div class="status-row">
+          <div id="status-llm">idle</div>
+          <div id="file-llm">-</div>
+          <div id="progress-llm">0</div>
+        </div>
+        <div class="progressbar"><div class="progressbar__fill" id="bar-llm"></div></div>
+      </div>
+      <div>
+        <strong>TTS</strong>
+        <div class="status-row">
+          <div id="status-tts">idle</div>
+          <div id="file-tts">-</div>
+          <div id="progress-tts">0</div>
+        </div>
+        <div class="progressbar"><div class="progressbar__fill" id="bar-tts"></div></div>
+      </div>
+      <div>
+        <strong>STT</strong>
+        <div class="status-row">
+          <div id="status-stt">idle</div>
+          <div id="file-stt">-</div>
+          <div id="progress-stt">0</div>
+        </div>
+        <div class="progressbar"><div class="progressbar__fill" id="bar-stt"></div></div>
+      </div>
+      <div>
+        <strong>Embedding</strong>
+        <div class="status-row">
+          <div id="status-embedding">idle</div>
+          <div id="file-embedding">-</div>
+          <div id="progress-embedding">0</div>
+        </div>
+        <div class="progressbar"><div class="progressbar__fill" id="bar-embedding"></div></div>
+      </div>
     </div>
 
     <pre id="out" style="white-space: pre-wrap; min-height: 140px; background:#fafafa; border:1px solid #e5e7eb; border-radius:8px; padding:10px; margin-top:12px;"></pre>
