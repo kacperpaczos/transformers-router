@@ -10,6 +10,7 @@
  */
 
 import type { Blob as NodeBlob } from 'buffer';
+import { ValidationError } from '@domain/errors';
 
 export type AudioInput = Blob | NodeBlob | Float32Array | Float64Array | string;
 export type AudioOutput = Float32Array;
@@ -83,7 +84,7 @@ export class AudioConverter {
       return this.fromBlob(audio, targetSampleRate);
     }
 
-    throw new Error(`Unsupported audio input type: ${typeof audio}`);
+    throw new ValidationError(`Unsupported audio input type: ${typeof audio}`, 'audioType');
   }
 
   /**

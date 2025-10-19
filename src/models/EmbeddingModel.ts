@@ -4,6 +4,8 @@
 
 import type { EmbeddingConfig, EmbeddingOptions } from '../core/types';
 import { BaseModel } from './BaseModel';
+import { getConfig } from '../app/state';
+import { ModelLoadError, InferenceError } from '@domain/errors';
 
 // Interface for Tensor from Transformers.js
 interface Tensor {
@@ -75,7 +77,8 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
           }
 
           const pipelineDevice = dev === 'wasm' ? 'cpu' : (dev as 'cpu' | 'gpu' | 'webgpu');
-          console.log('[transformers-router] load Embedding try', { device: dev, dtype });
+          const logger = getConfig().logger;
+          logger.debug('[transformers-router] load Embedding try', { device: dev, dtype });
           this.pipeline = await pipeline('feature-extraction', this.config.model, {
             dtype,
             device: pipelineDevice,
@@ -86,18 +89,22 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
           lastError = null;
           break;
         } catch (err) {
-          console.log('[transformers-router] load Embedding fallback', { from: dev, error: (err as Error)?.message });
+          const logger = getConfig().logger;
+          logger.debug('[transformers-router] load Embedding fallback', { from: dev, error: (err as Error)?.message });
           lastError = err instanceof Error ? err : new Error(String(err));
         }
       }
 
       if (!this.loaded) {
-        throw lastError || new Error('Unknown error during Embedding model load');
+        throw lastError || new ModelLoadError('Unknown error during Embedding model load', this.config.model, 'embedding');
       }
     } catch (error) {
       this.loaded = false;
-      throw new Error(
-        `Failed to load Embedding model ${this.config.model}: ${(error as Error).message}`
+      throw new ModelLoadError(
+        `Failed to load Embedding model ${this.config.model}: ${(error as Error).message}`,
+        this.config.model,
+        'embedding',
+        error as Error
       );
     } finally {
       this.loading = false;
@@ -127,7 +134,7 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
       // Type-safe conversion
       return this.tensorToArray(result);
     } catch (error) {
-      throw new Error(`Embedding generation failed: ${(error as Error).message}`);
+      throw new InferenceError(`Embedding generation failed: ${(error as Error).message}`, 'embedding', error as Error);
     }
   }
 
@@ -158,7 +165,7 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
       return result;
     }
 
-    throw new Error('Unsupported tensor format');
+    throw new InferenceError('Unsupported tensor format', 'embedding');
   }
 
   /**
@@ -166,7 +173,7 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
    */
   cosineSimilarity(embedding1: number[], embedding2: number[]): number {
     if (embedding1.length !== embedding2.length) {
-      throw new Error('Embeddings must have the same dimension');
+      throw new InferenceError('Embeddings must have the same dimension', 'embedding');
     }
 
     let dotProduct = 0;

@@ -5,6 +5,8 @@
 import type { STTConfig, STTOptions } from '../core/types';
 import { BaseModel } from './BaseModel';
 import { audioConverter, type AudioInput } from '../utils/AudioConverter';
+import { getConfig } from '../app/state';
+import { ModelLoadError, InferenceError } from '@domain/errors';
 
 // Dynamically import Transformers.js
 let transformersModule: typeof import('@huggingface/transformers') | null = null;
@@ -68,7 +70,8 @@ export class STTModel extends BaseModel<STTConfig> {
           }
 
           const pipelineDevice = dev === 'wasm' ? 'cpu' : (dev as 'cpu' | 'gpu' | 'webgpu');
-          console.log('[transformers-router] load STT try', { device: dev, dtype });
+          const logger = getConfig().logger;
+          logger.debug('[transformers-router] load STT try', { device: dev, dtype });
           this.pipeline = await pipeline(
             'automatic-speech-recognition',
             this.config.model,
@@ -83,18 +86,22 @@ export class STTModel extends BaseModel<STTConfig> {
           lastError = null;
           break;
         } catch (err) {
-          console.log('[transformers-router] load STT fallback', { from: dev, error: (err as Error)?.message });
+          const logger = getConfig().logger;
+          logger.debug('[transformers-router] load STT fallback', { from: dev, error: (err as Error)?.message });
           lastError = err instanceof Error ? err : new Error(String(err));
         }
       }
 
       if (!this.loaded) {
-        throw lastError || new Error('Unknown error during STT model load');
+        throw lastError || new ModelLoadError('Unknown error during STT model load', this.config.model, 'stt');
       }
     } catch (error) {
       this.loaded = false;
-      throw new Error(
-        `Failed to load STT model ${this.config.model}: ${(error as Error).message}`
+      throw new ModelLoadError(
+        `Failed to load STT model ${this.config.model}: ${(error as Error).message}`,
+        this.config.model,
+        'stt',
+        error as Error
       );
     } finally {
       this.loading = false;
@@ -141,7 +148,7 @@ export class STTModel extends BaseModel<STTConfig> {
 
       return result.text;
     } catch (error) {
-      throw new Error(`STT transcription failed: ${(error as Error).message}`);
+      throw new InferenceError(`STT transcription failed: ${(error as Error).message}`, 'stt', error as Error);
     }
   }
 

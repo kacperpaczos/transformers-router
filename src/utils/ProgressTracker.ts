@@ -3,7 +3,7 @@
  */
 
 import type { Modality, ProgressInfo } from '../core/types';
-import { EventEmitter } from './EventEmitter';
+import { EventEmitter } from '@infra/events/EventEmitter';
 
 export class ProgressTracker {
   private eventEmitter: EventEmitter;

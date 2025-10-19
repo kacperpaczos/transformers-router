@@ -5,6 +5,7 @@
 import type { TTSConfig, TTSOptions } from '../core/types';
 import { BaseModel } from './BaseModel';
 import { audioConverter } from '../utils/AudioConverter';
+import { ModelLoadError, InferenceError } from '@domain/errors';
 
 // Dynamically import Transformers.js
 let transformersModule: typeof import('@huggingface/transformers') | null = null;
@@ -56,8 +57,11 @@ export class TTSModel extends BaseModel<TTSConfig> {
       this.loaded = true;
     } catch (error) {
       this.loaded = false;
-      throw new Error(
-        `Failed to load TTS model ${this.config.model}: ${(error as Error).message}`
+      throw new ModelLoadError(
+        `Failed to load TTS model ${this.config.model}: ${(error as Error).message}`,
+        this.config.model,
+        'tts',
+        error as Error
       );
     } finally {
       this.loading = false;
@@ -97,7 +101,7 @@ export class TTSModel extends BaseModel<TTSConfig> {
         { channels: 1, bitDepth: 16 }
       );
     } catch (error) {
-      throw new Error(`TTS synthesis failed: ${(error as Error).message}`);
+      throw new InferenceError(`TTS synthesis failed: ${(error as Error).message}`, 'tts', error as Error);
     }
   }
 

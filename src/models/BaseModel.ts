@@ -3,6 +3,7 @@
  */
 
 import type { Modality, ModelConfig } from '../core/types';
+import { ModelNotLoadedError } from '@domain/errors';
 
 export abstract class BaseModel<TConfig extends ModelConfig = ModelConfig> {
   protected pipeline: unknown | null = null;
@@ -69,7 +70,7 @@ export abstract class BaseModel<TConfig extends ModelConfig = ModelConfig> {
    */
   protected getPipeline(): unknown {
     if (!this.pipeline) {
-      throw new Error(`Model not loaded: ${this.config.model}`);
+      throw new ModelNotLoadedError(`Model not loaded: ${this.config.model}`, this.config.model, this.modality);
     }
     return this.pipeline;
   }
@@ -103,7 +104,7 @@ export abstract class BaseModel<TConfig extends ModelConfig = ModelConfig> {
     }
 
     if (!this.loaded) {
-      throw new Error(`Failed to load model: ${this.config.model}`);
+      throw new ModelNotLoadedError(`Failed to load model: ${this.config.model}`, this.config.model, this.modality);
     }
   }
 }
