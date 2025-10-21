@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { AIProvider, createAIProvider } from '@app/AIProvider';
+import { AIProvider, createAIProvider } from '../../app/AIProvider';
 import type { AIProviderConfig, ProgressInfo, ModelStatus } from '../../core/types';
 
 export interface UseAIProviderOptions extends AIProviderConfig {
@@ -40,9 +40,9 @@ export function useAIProvider(
   // Initialize provider
   useEffect(() => {
     const newProvider = createAIProvider(providerConfig);
-    
+
     // Set up event listeners
-    newProvider.on('progress', (data) => {
+    newProvider.on('progress', data => {
       setProgress(data as ProgressInfo);
       setIsLoading(true);
     });
@@ -53,7 +53,7 @@ export function useAIProvider(
       setStatuses(newProvider.getAllStatuses());
     });
 
-    newProvider.on('error', (data) => {
+    newProvider.on('error', data => {
       const errorData = data as { error: Error };
       setError(errorData.error);
       setIsLoading(false);
@@ -65,7 +65,7 @@ export function useAIProvider(
     // Auto-load if configured
     if (autoLoad) {
       setIsLoading(true);
-      newProvider.warmup().catch((err) => {
+      newProvider.warmup().catch(err => {
         setError(err);
         setIsLoading(false);
       });
@@ -122,4 +122,3 @@ export function useAIProvider(
     dispose,
   };
 }
-

@@ -40,7 +40,7 @@ export class AIProviderWorker {
         this.workerPool = new WorkerPool(workerUrl, 2); // 2 workers for LLM
 
         // Wait a bit for workers to initialize
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 100));
       } else {
         throw new ValidationError('WorkerPool requires browser environment with import.meta.url support', 'environment');
       }
@@ -198,7 +198,7 @@ export class AIProviderWorker {
    */
   async dispose(): Promise<void> {
     await this.unload();
-    
+
     if (this.workerPool) {
       this.workerPool.terminate();
       this.workerPool = null;
@@ -238,4 +238,3 @@ export function createAIProviderWorker(
 ): AIProviderWorker {
   return new AIProviderWorker(config);
 }
-

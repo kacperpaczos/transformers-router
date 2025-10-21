@@ -41,10 +41,7 @@ export class ModelManager {
   /**
    * Load a model for a specific modality
    */
-  async loadModel(
-    modality: Modality,
-    config: ModelConfig
-  ): Promise<BaseModel> {
+  async loadModel(modality: Modality, config: ModelConfig): Promise<BaseModel> {
     // Check if model is already loaded with the same config
     const existingModel = this.models.get(modality);
     if (existingModel && this.isSameConfig(modality, config)) {
@@ -183,7 +180,7 @@ export class ModelManager {
    */
   getAllStatuses(): ModelStatus[] {
     const modalities: Modality[] = ['llm', 'tts', 'stt', 'embedding'];
-    return modalities.map((modality) => this.getStatus(modality));
+    return modalities.map(modality => this.getStatus(modality));
   }
 
   /**
@@ -191,7 +188,7 @@ export class ModelManager {
    */
   async clearAll(): Promise<void> {
     const modalities = Array.from(this.models.keys());
-    await Promise.all(modalities.map((modality) => this.unloadModel(modality)));
+    await Promise.all(modalities.map(modality => this.unloadModel(modality)));
     this.cache.clear();
     this.progressTracker.clearAll();
   }

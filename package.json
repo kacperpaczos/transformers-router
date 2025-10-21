@@ -1,7 +1,8 @@
 {
   "name": "transformers-router",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Local AI infrastructure for agent frameworks - Transformers.js wrapper with LLM, TTS, STT, Web Workers, React & Vue support",
+  "homepage": "https://github.com/kacperpaczos/transformers-router#readme",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -11,12 +12,28 @@
       "require": "./dist/index.js"
     },
     "./react": {
-      "types": "./src/react/index.ts",
-      "import": "./src/react/index.ts"
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js"
     },
     "./vue": {
-      "types": "./src/vue/index.ts",
-      "import": "./src/vue/index.ts"
+      "types": "./dist/vue/index.d.ts",
+      "import": "./dist/vue/index.js"
+    },
+    "./adapters": {
+      "types": "./dist/adapters/index.d.ts",
+      "import": "./dist/adapters/index.js"
+    },
+    "./models": {
+      "types": "./dist/models/index.d.ts",
+      "import": "./dist/models/index.js"
+    },
+    "./workers": {
+      "types": "./dist/workers/index.d.ts",
+      "import": "./dist/workers/index.js"
+    },
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "import": "./dist/utils/index.js"
     }
   },
   "scripts": {
@@ -35,7 +52,9 @@
     "serve:browser": "node tests/integration-browser/server.mjs",
     "lint": "eslint 'src/**/*.ts' --ignore-pattern 'src/**/*.test.ts'",
     "lint:fix": "eslint 'src/**/*.ts' --ignore-pattern 'src/**/*.test.ts' --fix",
-    "prepare": "npm run build"
+    "format": "prettier --write 'src/**/*.{ts,js,json,md}'",
+    "format:check": "prettier --check 'src/**/*.{ts,js,json,md}'",
+    "prepare": "husky"
   },
   "keywords": [
     "transformers",
@@ -50,32 +69,53 @@
     "huggingface",
     "transformers.js",
     "openai-compatible",
-    "agent-framework"
+    "agent-framework",
+    "text-to-speech",
+    "speech-to-text",
+    "machine-learning",
+    "natural-language-processing",
+    "browser-ai",
+    "web-ai",
+    "onnx",
+    "voice-profiles",
+    "react",
+    "vue",
+    "typescript",
+    "javascript"
   ],
   "author": "Kacper Paczos",
   "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "examples"
   ],
   "peerDependencies": {
     "@huggingface/transformers": "^3.0.0"
   },
   "devDependencies": {
     "@huggingface/transformers": "^3.2.2",
-    "onnxruntime-node": "1.18.0",
-    "onnxruntime-common": "1.18.0",
     "@playwright/test": "^1.56.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.7.1",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
-    "@typescript-eslint/eslint-plugin": "^8.46.0",
-    "@typescript-eslint/parser": "^8.46.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.1",
+    "@typescript-eslint/parser": "^8.46.1",
     "eslint": "^9.37.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
     "globals": "^16.4.0",
+    "husky": "^9.1.7",
     "jest": "^30.2.0",
+    "lint-staged": "^16.2.4",
+    "onnxruntime-common": "1.18.0",
+    "onnxruntime-node": "1.18.0",
+    "prettier": "^3.6.2",
     "ts-jest": "^29.4.5",
     "typescript": "^5.9.3",
     "vue": "^3.5.22"
@@ -86,5 +126,14 @@
   },
   "bugs": {
     "url": "https://github.com/kacperpaczos/transformers-router/issues"
+  },
+  "lint-staged": {
+    "src/**/*.{ts,js}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "src/**/*.{json,md}": [
+      "prettier --write"
+    ]
   }
 }

@@ -34,7 +34,10 @@ export class ProgressTracker {
 
       if (progress.progress !== undefined) {
         progressPercent = progress.progress;
-      } else if (progress.loaded !== undefined && progress.total !== undefined) {
+      } else if (
+        progress.loaded !== undefined &&
+        progress.total !== undefined
+      ) {
         loaded = progress.loaded;
         total = progress.total;
         progressPercent = total > 0 ? (loaded / total) * 100 : 0;
@@ -108,7 +111,7 @@ export class ProgressTracker {
       }
     }
 
-    keysToDelete.forEach((key) => this.currentProgress.delete(key));
+    keysToDelete.forEach(key => this.currentProgress.delete(key));
   }
 
   /**
@@ -118,4 +121,3 @@ export class ProgressTracker {
     this.currentProgress.clear();
   }
 }
-

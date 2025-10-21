@@ -1,6 +1,6 @@
 <template>
   <div class="chat-app">
-    <h1>🤖 Vue Chat z Transformers.js</h1>
+    <h1>Vue Chat with Transformers.js</h1>
     
     <!-- Status -->
     <div class="status-card" :class="{ ready: isReady, loading: isLoading }">
@@ -11,10 +11,10 @@
         </div>
       </div>
       <div v-else-if="isReady">
-        <strong>✅ Model gotowy</strong>
+        <strong>Model ready</strong>
       </div>
       <div v-if="providerError" class="error">
-        ❌ Błąd: {{ providerError.message }}
+        Error: {{ providerError.message }}
       </div>
     </div>
 

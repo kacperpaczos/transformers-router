@@ -25,13 +25,7 @@ export class OpenAIAdapter {
   async createChatCompletion(
     params: OpenAIChatCompletionRequest
   ): Promise<OpenAIChatCompletionResponse> {
-    const {
-      messages,
-      temperature,
-      top_p,
-      max_tokens,
-      stop,
-    } = params;
+    const { messages, temperature, top_p, max_tokens, stop } = params;
 
     try {
       const response = await this.provider.chat(messages, {
@@ -109,9 +103,7 @@ export class OpenAIAdapter {
         },
       };
     } catch (error) {
-      throw new Error(
-        `OpenAI completion failed: ${(error as Error).message}`
-      );
+      throw new Error(`OpenAI completion failed: ${(error as Error).message}`);
     }
   }
 
@@ -152,9 +144,7 @@ export class OpenAIAdapter {
         },
       };
     } catch (error) {
-      throw new Error(
-        `OpenAI embeddings failed: ${(error as Error).message}`
-      );
+      throw new Error(`OpenAI embeddings failed: ${(error as Error).message}`);
     }
   }
 
@@ -230,10 +220,9 @@ export class OpenAIAdapter {
   static convertMessages(
     messages: Array<{ role: string; content: string }>
   ): Message[] {
-    return messages.map((msg) => ({
+    return messages.map(msg => ({
       role: msg.role as 'system' | 'user' | 'assistant' | 'function',
       content: msg.content,
     }));
   }
 }
-

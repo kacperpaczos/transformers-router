@@ -61,7 +61,7 @@ export class LangChainLLM {
     const mergedOptions = { ...this.defaultParams, ...options };
 
     // Convert LangChain messages to our format
-    const convertedMessages: Message[] = messages.map((msg) => ({
+    const convertedMessages: Message[] = messages.map(msg => ({
       role: msg.role as 'system' | 'user' | 'assistant',
       content: msg.content,
     }));
@@ -88,7 +88,7 @@ export class LangChainLLM {
       yield response;
     } else {
       // For messages, use chat
-      const convertedMessages: Message[] = promptOrMessages.map((msg) => ({
+      const convertedMessages: Message[] = promptOrMessages.map(msg => ({
         role: msg.role as 'system' | 'user' | 'assistant',
         content: msg.content,
       }));
@@ -166,4 +166,3 @@ export function createLangChainEmbeddings(
 ): LangChainEmbeddings {
   return new LangChainEmbeddings(provider);
 }
-

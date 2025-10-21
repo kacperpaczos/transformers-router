@@ -85,7 +85,7 @@ export function useChat(
         const error = err as Error;
         setError(error);
         onError?.(error);
-        
+
         // Remove user message on error
         setMessages((prev: Message[]) => prev.slice(0, -1));
       } finally {
@@ -164,4 +164,3 @@ export function useChat(
     retry,
   };
 }
-

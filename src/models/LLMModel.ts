@@ -13,8 +13,27 @@ import { BaseModel } from './BaseModel';
 import { getConfig } from '../app/state';
 import { ModelLoadError, InferenceError } from '@domain/errors';
 
+// Type definitions for LLM pipeline components
+interface LLMTokenizer {
+  eos_token_id?: number;
+  pad_token_id?: number;
+  chat_template?: string;
+  decode?: (tokens: number[]) => string;
+  encode?: (text: string) => number[];
+}
+
+interface LLMModelConfig {
+  eos_token_id?: number;
+  pad_token_id?: number;
+}
+
+interface LLMPipelineModel {
+  config?: LLMModelConfig;
+}
+
 // Dynamically import Transformers.js to avoid bundling issues
-let transformersModule: typeof import('@huggingface/transformers') | null = null;
+let transformersModule: typeof import('@huggingface/transformers') | null =
+  null;
 
 async function getTransformers() {
   if (!transformersModule) {
@@ -31,21 +50,32 @@ export class LLMModel extends BaseModel<LLMConfig> {
   /**
    * Load the LLM model
    */
-  async load(progressCallback?: (progress: {
-    status: string;
-    file?: string;
-    progress?: number;
-    loaded?: number;
-    total?: number;
-  }) => void): Promise<void> {
+  async load(
+    progressCallback?: (progress: {
+      status: string;
+      file?: string;
+      progress?: number;
+      loaded?: number;
+      total?: number;
+    }) => void
+  ): Promise<void> {
     if (this.loaded) {
+      if (typeof console !== 'undefined' && console.log) {
+        console.log('[LLMModel] load(): early-return, already loaded');
+      }
       return;
     }
 
     if (this.loading) {
       // Wait for existing load to complete
+      if (typeof console !== 'undefined' && console.log) {
+        console.log('[LLMModel] load(): waiting for concurrent load');
+      }
       while (this.loading) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      if (typeof console !== 'undefined' && console.log) {
+        console.log('[LLMModel] load(): concurrent load finished');
       }
       return;
     }
@@ -54,25 +84,115 @@ export class LLMModel extends BaseModel<LLMConfig> {
 
     try {
       const { pipeline, env } = await getTransformers();
+      if (typeof console !== 'undefined' && console.log) {
+        console.log('[LLMModel] load(): transformers loaded');
+      }
 
-      const desiredDevice = (this.config.device as string | undefined) || 'webgpu';
-      const tryOrder = desiredDevice === 'webgpu'
-        ? ['webgpu', 'wasm', 'cpu']
-        : [desiredDevice, ...(desiredDevice !== 'wasm' ? ['wasm'] : []), 'cpu'];
+      const isBrowser =
+        typeof window !== 'undefined' && typeof navigator !== 'undefined';
+      const supportsWebGPU =
+        isBrowser &&
+        typeof (navigator as unknown as { gpu?: unknown }).gpu !== 'undefined';
+
+      // Sprawdź realną dostępność adaptera WebGPU (nie tylko obecność API)
+      let webgpuAdapterAvailable = false;
+      if (supportsWebGPU) {
+        try {
+          const navWithGpu = navigator as unknown as {
+            gpu?: { requestAdapter?: () => Promise<unknown> };
+          };
+          const adapter = await (navWithGpu.gpu?.requestAdapter?.() ||
+            Promise.resolve(null));
+          webgpuAdapterAvailable = !!adapter;
+        } catch {
+          webgpuAdapterAvailable = false;
+        }
+      }
+
+      // Auto-detect device:
+      // - Browser: prefer WebGPU if available, otherwise WASM; never fall back to CPU in browser
+      // - Node: use provided device or CPU by default
+      const desiredDevice =
+        (this.config.device as string | undefined) ||
+        (isBrowser ? (supportsWebGPU ? 'webgpu' : 'wasm') : 'cpu');
+
+      const tryOrder = (() => {
+        if (isBrowser) {
+          if (desiredDevice === 'webgpu')
+            return webgpuAdapterAvailable ? ['webgpu', 'wasm'] : ['wasm'];
+          if (desiredDevice === 'wasm') return ['wasm'];
+          // If someone passed 'cpu' or other in browser, coerce to WASM-only
+          return ['wasm'];
+        }
+        // Node.js environment: allow CPU fallback
+        return desiredDevice === 'webgpu'
+          ? ['webgpu', 'cpu']
+          : [desiredDevice, ...(desiredDevice !== 'cpu' ? ['cpu'] : [])];
+      })();
+
+      if (typeof console !== 'undefined' && console.log) {
+        console.log('[LLMModel] load(): env', {
+          isBrowser,
+          supportsWebGPU,
+          desiredDevice,
+          tryOrder,
+        });
+      }
 
       const dtype = this.config.dtype || 'fp32';
+      if (typeof console !== 'undefined' && console.log) {
+        console.log('[LLMModel] load(): dtype resolved:', dtype);
+      }
 
       let lastError: Error | null = null;
       for (const dev of tryOrder) {
         try {
+          if (typeof console !== 'undefined' && console.log) {
+            console.log('[LLMModel] attempting device:', dev);
+          }
+
           // Optimize WASM backend if used
-          if (dev === 'wasm' && env?.backends?.onnx?.wasm) {
-            try {
-              env.backends.onnx.wasm.simd = true;
-              const cores = (typeof navigator !== 'undefined' ? navigator.hardwareConcurrency : 2) || 2;
-              env.backends.onnx.wasm.numThreads = Math.min(4, Math.max(1, cores - 1));
-            } catch {
-              /* ignore WASM tuning errors */
+          if (env?.backends?.onnx) {
+            // Podpowiedź backendu dla ORT (jeśli wspierane)
+            interface ONNXBackends {
+              backendHint?: string;
+              wasm?: {
+                simd?: boolean;
+                numThreads?: number;
+              };
+            }
+
+            const onnxBackends = env.backends.onnx as ONNXBackends;
+            if (dev === 'wasm') {
+              if ('backendHint' in onnxBackends)
+                onnxBackends.backendHint = 'wasm';
+              if (onnxBackends.wasm) {
+                onnxBackends.wasm.simd = true;
+                const cores =
+                  (typeof navigator !== 'undefined'
+                    ? navigator.hardwareConcurrency
+                    : 2) || 2;
+                onnxBackends.wasm.numThreads = Math.min(
+                  4,
+                  Math.max(1, cores - 1)
+                );
+                if (typeof console !== 'undefined' && console.log) {
+                  console.log('[LLMModel] WASM config:', {
+                    backendHint: onnxBackends.backendHint,
+                    simd: onnxBackends.wasm.simd,
+                    numThreads: onnxBackends.wasm.numThreads,
+                  });
+                }
+              }
+            } else if (dev === 'webgpu') {
+              if ('backendHint' in onnxBackends)
+                onnxBackends.backendHint = 'webgpu';
+              if (typeof console !== 'undefined' && console.log) {
+                console.log('[LLMModel] WebGPU config:', {
+                  backendHint: onnxBackends.backendHint,
+                  adapterAvailable: webgpuAdapterAvailable,
+                });
+              }
             }
           }
 
@@ -86,13 +206,15 @@ export class LLMModel extends BaseModel<LLMConfig> {
           });
 
           this.loaded = true;
+          if (typeof console !== 'undefined' && console.log) {
+            console.log('[LLMModel] loaded successfully with device:', dev);
+          }
           lastError = null;
           break;
         } catch (err) {
           const logger = getConfig().logger;
           logger.debug('[transformers-router] load LLM fallback', { from: dev, error: (err as Error)?.message });
           lastError = err instanceof Error ? err : new Error(String(err));
-          // try next device
         }
       }
 
@@ -109,6 +231,9 @@ export class LLMModel extends BaseModel<LLMConfig> {
       );
     } finally {
       this.loading = false;
+      if (typeof console !== 'undefined' && console.log) {
+        console.log('[LLMModel] load(): finished, loaded=', this.loaded);
+      }
     }
   }
 
@@ -122,11 +247,12 @@ export class LLMModel extends BaseModel<LLMConfig> {
     await this.ensureLoaded();
 
     const pipeline = this.getPipeline() as {
-      (input: Message[] | string, opts?: unknown): Promise<
-        Array<{ generated_text: Message[] | string }>
-      >;
-      tokenizer?: { eos_token_id?: number; pad_token_id?: number; chat_template?: unknown };
-      model?: { config?: { eos_token_id?: number; pad_token_id?: number } };
+      (
+        input: Message[] | string,
+        opts?: unknown
+      ): Promise<Array<{ generated_text: Message[] | string }>>;
+      tokenizer?: LLMTokenizer;
+      model?: LLMPipelineModel;
     };
 
     // Convert string to messages array
@@ -144,8 +270,14 @@ export class LLMModel extends BaseModel<LLMConfig> {
 
     // Build generation options
     // Derive special tokens from tokenizer/model config when available
-    const eosId = (pipeline.tokenizer?.eos_token_id ?? pipeline.model?.config?.eos_token_id) ?? 50256;
-    const padId = (pipeline.tokenizer?.pad_token_id ?? pipeline.model?.config?.pad_token_id) ?? eosId;
+    const eosId =
+      pipeline.tokenizer?.eos_token_id ??
+      pipeline.model?.config?.eos_token_id ??
+      50256;
+    const padId =
+      pipeline.tokenizer?.pad_token_id ??
+      pipeline.model?.config?.pad_token_id ??
+      eosId;
 
     const generationOptions = {
       max_new_tokens: options.maxTokens || this.config.maxTokens || 256,
@@ -165,12 +297,13 @@ export class LLMModel extends BaseModel<LLMConfig> {
     try {
       // For models without chat_template, convert messages to simple text
       let input: string | Message[];
-      
+
       // Check if tokenizer has chat_template
-      const hasChatTemplate = pipeline.tokenizer && 
-        'chat_template' in pipeline.tokenizer && 
+      const hasChatTemplate =
+        pipeline.tokenizer &&
+        'chat_template' in pipeline.tokenizer &&
         pipeline.tokenizer.chat_template;
-      
+
       if (hasChatTemplate) {
         // Use messageArray for models with chat_template
         input = messageArray;
@@ -184,9 +317,9 @@ export class LLMModel extends BaseModel<LLMConfig> {
           input = ' ';
         }
       }
-      
+
       const result = await pipeline(input, generationOptions);
-      
+
       // Handle different response formats
       let generatedMessage: Message;
       const gen = result[0].generated_text as unknown;
@@ -213,7 +346,7 @@ export class LLMModel extends BaseModel<LLMConfig> {
 
       // Calculate token usage (approximate)
       const promptTokens = this.estimateTokens(
-        messageArray.map((m) => m.content).join(' ')
+        messageArray.map(m => m.content).join(' ')
       );
       const completionTokens = this.estimateTokens(generatedMessage.content);
 
@@ -246,13 +379,19 @@ export class LLMModel extends BaseModel<LLMConfig> {
       opts?: unknown
     ) => Promise<Array<{ generated_text: string }>>;
 
-    // Derive special tokens
-    const p2 = this.getPipeline() as {
-      tokenizer?: { eos_token_id?: number; pad_token_id?: number };
-      model?: { config?: { eos_token_id?: number; pad_token_id?: number } };
+    // Derive special tokens using typed pipeline
+    const typedPipeline = this.getPipeline() as {
+      tokenizer?: LLMTokenizer;
+      model?: LLMPipelineModel;
     };
-    const eosId = (p2?.tokenizer?.eos_token_id ?? p2?.model?.config?.eos_token_id) ?? 50256;
-    const padId = (p2?.tokenizer?.pad_token_id ?? p2?.model?.config?.pad_token_id) ?? eosId;
+    const eosId =
+      typedPipeline?.tokenizer?.eos_token_id ??
+      typedPipeline?.model?.config?.eos_token_id ??
+      50256;
+    const padId =
+      typedPipeline?.tokenizer?.pad_token_id ??
+      typedPipeline?.model?.config?.pad_token_id ??
+      eosId;
 
     const generationOptions = {
       max_new_tokens: options.maxTokens || this.config.maxTokens || 256,
@@ -285,13 +424,12 @@ export class LLMModel extends BaseModel<LLMConfig> {
     const { TextStreamer } = await getTransformers();
 
     const pipeline = this.getPipeline() as {
-      (input: Message[] | string, opts?: unknown): Promise<
-        Array<{ generated_text: Message[] | string }>
-      >;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tokenizer: any;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      model?: any;
+      (
+        input: Message[] | string,
+        opts?: unknown
+      ): Promise<Array<{ generated_text: Message[] | string }>>;
+      tokenizer: LLMTokenizer;
+      model?: LLMPipelineModel;
     };
 
     const messageArray: Message[] = Array.isArray(messages)
@@ -306,8 +444,9 @@ export class LLMModel extends BaseModel<LLMConfig> {
     }
 
     // Check if tokenizer has chat_template
-    const hasChatTemplate = pipeline.tokenizer && 
-      'chat_template' in pipeline.tokenizer && 
+    const hasChatTemplate =
+      pipeline.tokenizer &&
+      'chat_template' in pipeline.tokenizer &&
       pipeline.tokenizer.chat_template;
 
     // Prepare input based on model capabilities
@@ -332,8 +471,14 @@ export class LLMModel extends BaseModel<LLMConfig> {
       },
     });
 
-    const eosId = (pipeline.tokenizer?.eos_token_id ?? pipeline.model?.config?.eos_token_id) ?? 50256;
-    const padId = (pipeline.tokenizer?.pad_token_id ?? pipeline.model?.config?.pad_token_id) ?? eosId;
+    const eosId =
+      pipeline.tokenizer?.eos_token_id ??
+      pipeline.model?.config?.eos_token_id ??
+      50256;
+    const padId =
+      pipeline.tokenizer?.pad_token_id ??
+      pipeline.model?.config?.pad_token_id ??
+      eosId;
 
     const generationOptions = {
       max_new_tokens: options.maxTokens || this.config.maxTokens || 256,
@@ -360,7 +505,7 @@ export class LLMModel extends BaseModel<LLMConfig> {
         // Check if generation is complete
         const settled = await Promise.race([
           generationPromise.then(() => true),
-          new Promise((resolve) => setTimeout(() => resolve(false), 50)),
+          new Promise(resolve => setTimeout(() => resolve(false), 50)),
         ]);
 
         if (settled && lastIndex >= tokens.length) {
@@ -378,4 +523,3 @@ export class LLMModel extends BaseModel<LLMConfig> {
     return Math.ceil(text.length / 4);
   }
 }
-

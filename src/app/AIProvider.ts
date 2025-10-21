@@ -48,7 +48,10 @@ export class AIProvider {
       throw new ValidationError('LLM not configured. Please provide llm config in AIProvider constructor.', 'llm');
     }
 
-    const model = await this.modelManager.getOrLoadModel('llm', this.config.llm);
+    const model = await this.modelManager.getOrLoadModel(
+      'llm',
+      this.config.llm
+    );
     return (model as LLMModel).chat(messages, options);
   }
 
@@ -63,7 +66,10 @@ export class AIProvider {
       throw new ValidationError('LLM not configured', 'llm');
     }
 
-    const model = await this.modelManager.getOrLoadModel('llm', this.config.llm);
+    const model = await this.modelManager.getOrLoadModel(
+      'llm',
+      this.config.llm
+    );
     return (model as LLMModel).complete(prompt, options);
   }
 
@@ -78,7 +84,10 @@ export class AIProvider {
       throw new ValidationError('LLM not configured', 'llm');
     }
 
-    const model = await this.modelManager.getOrLoadModel('llm', this.config.llm);
+    const model = await this.modelManager.getOrLoadModel(
+      'llm',
+      this.config.llm
+    );
     yield* (model as LLMModel).stream(messages, options);
   }
 
@@ -92,7 +101,10 @@ export class AIProvider {
       throw new ValidationError('TTS not configured. Please provide tts config in AIProvider constructor.', 'tts');
     }
 
-    const model = await this.modelManager.getOrLoadModel('tts', this.config.tts);
+    const model = await this.modelManager.getOrLoadModel(
+      'tts',
+      this.config.tts
+    );
     return (model as TTSModel).synthesize(text, options);
   }
 
@@ -107,7 +119,10 @@ export class AIProvider {
       throw new ValidationError('STT not configured. Please provide stt config in AIProvider constructor.', 'stt');
     }
 
-    const model = await this.modelManager.getOrLoadModel('stt', this.config.stt);
+    const model = await this.modelManager.getOrLoadModel(
+      'stt',
+      this.config.stt
+    );
     return (model as STTModel).transcribe(audio, options);
   }
 

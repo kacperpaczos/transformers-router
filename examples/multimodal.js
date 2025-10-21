@@ -3,12 +3,16 @@
  * Demonstrates LLM, TTS, STT, and Embeddings together
  */
 
-const { createAIProvider } = require('../dist/index');
-const fs = require('fs');
-const path = require('path');
+import { createAIProvider } from '../dist/index.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function main() {
-  console.log('🌐 Multimodal AI Example\n');
+  console.log('=== Multimodal AI Example ===\n');
 
   // Create AI provider with all modalities
   const provider = createAIProvider({
@@ -33,11 +37,11 @@ async function main() {
 
   // Track progress
   provider.on('progress', ({ modality, file, progress }) => {
-    console.log(`📥 ${modality}: ${file} (${progress}%)`);
+    console.log(`Loading ${modality}: ${file} (${progress}%)`);
   });
 
   provider.on('ready', ({ modality }) => {
-    console.log(`✅ ${modality} ready!\n`);
+    console.log(`${modality} model ready`);
   });
 
   try {
@@ -95,7 +99,7 @@ async function main() {
     const statuses = provider.getAllStatuses();
     statuses.forEach((status) => {
       console.log(
-        `${status.modality}: ${status.loaded ? '✅ Loaded' : '⏳ Not loaded'}${
+        `${status.modality}: ${status.loaded ? 'Loaded' : 'Not loaded'}${
           status.model ? ` (${status.model})` : ''
         }`
       );

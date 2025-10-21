@@ -3,10 +3,10 @@
  * Shows how to use the library with OpenAI-compatible interface
  */
 
-const { createAIProvider, OpenAIAdapter } = require('../dist/index');
+import { createAIProvider, OpenAIAdapter } from '../dist/index.js';
 
 async function main() {
-  console.log('🔄 OpenAI-Compatible API Example\n');
+  console.log('=== OpenAI-Compatible API Example ===\n');
 
   // Create AI provider
   const provider = createAIProvider({

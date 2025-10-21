@@ -40,30 +40,33 @@ let llmPipeline: unknown | null = null;
 let modelLoaded = false;
 
 // Handle messages from main thread
-(globalThis as unknown as Worker).addEventListener('message', async (event: MessageEvent<WorkerRequest>) => {
-  const { id, type, data } = event.data;
+(globalThis as unknown as Worker).addEventListener(
+  'message',
+  async (event: MessageEvent<WorkerRequest>) => {
+    const { id, type, data } = event.data;
 
-  try {
-    switch (type) {
-      case 'load':
-        await handleLoad(id, data);
-        break;
-      case 'chat':
-        await handleChat(id, data);
-        break;
-      case 'complete':
-        await handleComplete(id, data);
-        break;
-      case 'unload':
-        handleUnload(id);
-        break;
-      default:
-        throw new Error(`Unknown task type: ${type}`);
+    try {
+      switch (type) {
+        case 'load':
+          await handleLoad(id, data);
+          break;
+        case 'chat':
+          await handleChat(id, data);
+          break;
+        case 'complete':
+          await handleComplete(id, data);
+          break;
+        case 'unload':
+          handleUnload(id);
+          break;
+        default:
+          throw new Error(`Unknown task type: ${type}`);
+      }
+    } catch (error) {
+      postError(id, error as Error);
     }
-  } catch (error) {
-    postError(id, error as Error);
   }
-});
+);
 
 /**
  * Load LLM model
@@ -170,7 +173,7 @@ async function handleComplete(id: string, data?: WorkerRequest['data']) {
   ) => Promise<Array<{ generated_text: string }>>;
 
   const result = await pipeline(prompt, options);
-  
+
   postResponse(id, {
     text: result[0].generated_text,
   });
@@ -223,4 +226,3 @@ function postProgress(id: string, progress: WorkerResponse['progress']) {
 
 // Notify that worker is ready
 (globalThis as unknown as Worker).postMessage({ type: 'ready' });
-

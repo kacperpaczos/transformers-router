@@ -47,7 +47,7 @@ export function useChat(
    */
   const send = async (content: string) => {
     const currentProvider = getProvider();
-    
+
     if (!currentProvider) {
       const err = new Error('Provider not initialized');
       error.value = err;
@@ -90,7 +90,7 @@ export function useChat(
       const errorObj = err as Error;
       error.value = errorObj;
       onError?.(errorObj);
-      
+
       // Remove user message on error
       messages.value = messages.value.slice(0, -1);
     } finally {
@@ -103,7 +103,7 @@ export function useChat(
    */
   const sendMessages = async (customMessages: Message[]) => {
     const currentProvider = getProvider();
-    
+
     if (!currentProvider) {
       const err = new Error('Provider not initialized');
       error.value = err;
@@ -166,4 +166,3 @@ export function useChat(
     retry,
   };
 }
-

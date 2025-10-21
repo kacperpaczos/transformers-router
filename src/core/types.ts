@@ -2,6 +2,17 @@
  * Core types for Transformers Router - AI Agent Infrastructure
  */
 
+// Re-export voice profile types
+export type {
+  VoiceGender,
+  VoiceEmotion,
+  VoiceAge,
+  VoiceStyle,
+  VoiceParameters,
+  VoiceProfile,
+  VoiceProfileOptions,
+} from './VoiceProfile';
+
 // Wspierane modalności
 export type Modality = 'llm' | 'tts' | 'stt' | 'embedding';
 
@@ -36,9 +47,9 @@ export interface TTSConfig {
   model: string;
   dtype?: DType;
   device?: Device;
-  performanceMode?: 'auto' | 'fast' | 'quality';
-  speaker?: string;
+  speaker?: string | Float32Array;
   sampleRate?: number;
+  voiceProfile?: string; // ID profilu głosowego
 }
 
 // STT Configuration
@@ -94,9 +105,15 @@ export interface CompletionOptions {
 // TTS Options
 export interface TTSOptions {
   speaker?: string | Float32Array | Float64Array;
+  voiceProfile?: string; // ID profilu głosowego
   speed?: number;
+  pitch?: number;
   quality?: number;
   format?: 'wav' | 'mp3' | 'ogg';
+  emotion?: import('./VoiceProfile').VoiceEmotion;
+  age?: import('./VoiceProfile').VoiceAge;
+  accent?: string;
+  style?: import('./VoiceProfile').VoiceStyle;
 }
 
 // STT Options
@@ -190,7 +207,9 @@ export interface EventDataMap {
 export type EventType = keyof EventDataMap;
 
 // Type-safe event callback
-export type EventCallback<T extends EventType = EventType> = (data: EventDataMap[T]) => void;
+export type EventCallback<T extends EventType = EventType> = (
+  data: EventDataMap[T]
+) => void;
 
 // OpenAI-compatible types
 export interface OpenAIChatCompletionRequest {
@@ -245,4 +264,3 @@ export interface CachedModel {
   loadedAt: number;
   lastUsedAt: number;
 }
-

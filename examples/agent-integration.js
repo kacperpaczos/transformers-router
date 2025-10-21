@@ -3,7 +3,7 @@
  * Shows how to use transformers-router as a local AI provider for agent frameworks
  */
 
-const { createAIProvider, OpenAIAdapter } = require('../dist/index');
+import { createAIProvider, OpenAIAdapter } from '../dist/index.js';
 
 // Simulated agent framework
 class SimpleAgent {
@@ -14,7 +14,7 @@ class SimpleAgent {
   }
 
   async run(task) {
-    console.log(`\n🤖 Agent Task: ${task}\n`);
+    console.log(`\n--- Agent Task: ${task} ---`);
 
     // Add user message
     this.conversationHistory.push({
@@ -66,7 +66,7 @@ class RAGSystem {
   }
 
   async indexDocuments() {
-    console.log('📚 Indexing documents...');
+    console.log('Indexing documents...');
     const texts = this.documents.map((doc) => doc.content);
     this.embeddings = await this.embedder.embed(texts);
     console.log(`Indexed ${this.documents.length} documents\n`);
@@ -87,7 +87,7 @@ class RAGSystem {
 }
 
 async function main() {
-  console.log('🔧 Agent Framework Integration Example\n');
+  console.log('=== Agent Framework Integration Example ===\n');
 
   // Initialize AI Provider
   const provider = createAIProvider({
@@ -105,8 +105,8 @@ async function main() {
   const llm = new OpenAIAdapter(provider);
 
   try {
-    // === Example 1: Simple Agent ===
-    console.log('=== Example 1: Simple Agent ===\n');
+    // Example 1: Simple Agent
+    console.log('--- Example 1: Simple Agent ---\n');
 
     const agent = new SimpleAgent(llm);
 
@@ -115,8 +115,8 @@ async function main() {
 
     console.log(`Total tokens used: ${agent.conversationHistory.length * 50} (estimated)\n`);
 
-    // === Example 2: RAG Agent ===
-    console.log('=== Example 2: RAG-Powered Agent ===\n');
+    // Example 2: RAG Agent
+    console.log('--- Example 2: RAG-Powered Agent ---\n');
 
     // Sample knowledge base
     const documents = [
@@ -165,8 +165,8 @@ async function main() {
 
     await ragAgent.run(contextualPrompt);
 
-    // === Example 3: Multi-turn conversation ===
-    console.log('=== Example 3: Multi-turn Conversation ===\n');
+    // Example 3: Multi-turn conversation
+    console.log('--- Example 3: Multi-turn Conversation ---\n');
 
     const chatAgent = new SimpleAgent(llm);
 
@@ -174,7 +174,7 @@ async function main() {
     await chatAgent.run('Is Python good for beginners?');
     await chatAgent.run('What projects can I build with it?');
 
-    console.log('\n--- Conversation Summary ---');
+    console.log('\nConversation Summary:');
     console.log(`Total turns: ${chatAgent.conversationHistory.length / 2}`);
     console.log(`Messages in history: ${chatAgent.conversationHistory.length}`);
   } catch (error) {

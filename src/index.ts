@@ -27,6 +27,12 @@ export { EmbeddingModel } from './models/EmbeddingModel';
 export { ModelManager } from './app/ModelManager';
 export { ModelCache } from './app/cache/ModelCache';
 
+// Voice Profile system
+export {
+  VoiceProfileRegistry,
+  voiceProfileRegistry,
+} from './core/VoiceProfileRegistry';
+
 // Types
 export type {
   // Config types
@@ -55,6 +61,14 @@ export type {
   DType,
   EventType,
   EventCallback,
+  // Voice Profile types
+  VoiceGender,
+  VoiceEmotion,
+  VoiceAge,
+  VoiceStyle,
+  VoiceParameters,
+  VoiceProfile,
+  VoiceProfileOptions,
   // OpenAI types
   OpenAIChatCompletionRequest,
   OpenAIChatCompletionResponse,
@@ -63,7 +77,11 @@ export type {
 } from './core/types';
 
 // Utility types and classes
-export type { AudioInput, AudioOutput, AudioMetadata } from './utils/AudioConverter';
+export type {
+  AudioInput,
+  AudioOutput,
+  AudioMetadata,
+} from './utils/AudioConverter';
 export { audioConverter, AudioConverter } from './utils/AudioConverter';
 
 // Legacy router (for backward compatibility)

@@ -35,7 +35,10 @@ export class WorkerPool {
   private poolSize: number;
   private taskIdCounter = 0;
 
-  constructor(workerScript: string | URL, poolSize: number = navigator.hardwareConcurrency || 4) {
+  constructor(
+    workerScript: string | URL,
+    poolSize: number = navigator.hardwareConcurrency || 4
+  ) {
     this.workerScript = workerScript;
     this.poolSize = Math.min(poolSize, 8); // Max 8 workers
     this.initialize();
@@ -47,10 +50,13 @@ export class WorkerPool {
   private initialize(): void {
     for (let i = 0; i < this.poolSize; i++) {
       const worker = new Worker(this.workerScript, { type: 'module' });
-      
-      worker.addEventListener('message', (event: MessageEvent<WorkerMessage>) => {
-        this.handleWorkerMessage(worker, event.data);
-      });
+
+      worker.addEventListener(
+        'message',
+        (event: MessageEvent<WorkerMessage>) => {
+          this.handleWorkerMessage(worker, event.data);
+        }
+      );
 
       worker.addEventListener('error', (error) => {
         const logger = getConfig().logger;
@@ -105,7 +111,7 @@ export class WorkerPool {
    */
   private handleWorkerMessage(worker: Worker, message: WorkerMessage): void {
     const task = this.activeTasks.get(message.id);
-    
+
     if (!task) {
       return;
     }
@@ -155,12 +161,15 @@ export class WorkerPool {
     oldWorker.terminate();
 
     const newWorker = new Worker(this.workerScript, { type: 'module' });
-    
-    newWorker.addEventListener('message', (event: MessageEvent<WorkerMessage>) => {
-      this.handleWorkerMessage(newWorker, event.data);
-    });
 
-    newWorker.addEventListener('error', (error) => {
+    newWorker.addEventListener(
+      'message',
+      (event: MessageEvent<WorkerMessage>) => {
+        this.handleWorkerMessage(newWorker, event.data);
+      }
+    );
+
+    newWorker.addEventListener('error', error => {
       this.handleWorkerError(newWorker, error);
     });
 
@@ -201,7 +210,7 @@ export class WorkerPool {
     while (this.taskQueue.length > 0 && this.availableWorkers.length > 0) {
       const task = this.taskQueue.shift();
       const worker = this.getAvailableWorker();
-      
+
       if (task && worker) {
         this.executeTask(worker, task);
       }
@@ -241,4 +250,3 @@ export class WorkerPool {
     };
   }
 }
-
