@@ -10,6 +10,8 @@ import type {
   CompletionOptions,
 } from '../core/types';
 import { BaseModel } from './BaseModel';
+import { getConfig } from '../app/state';
+import { ModelLoadError, InferenceError } from '@domain/errors';
 
 // Type definitions for LLM pipeline components
 interface LLMTokenizer {
@@ -194,12 +196,9 @@ export class LLMModel extends BaseModel<LLMConfig> {
             }
           }
 
-          // Przekazuj dokładnie wybrany backend: w przeglądarce akceptowane są 'webgpu' lub 'wasm'
-          const pipelineDevice = dev as unknown as
-            | 'webgpu'
-            | 'wasm'
-            | 'gpu'
-            | 'cpu';
+          const pipelineDevice = dev === 'wasm' ? 'cpu' : (dev as 'cpu' | 'gpu' | 'webgpu');
+          const logger = getConfig().logger;
+          logger.debug('[transformers-router] load LLM try', { device: dev, dtype });
           this.pipeline = await pipeline('text-generation', this.config.model, {
             dtype,
             device: pipelineDevice,
@@ -212,27 +211,23 @@ export class LLMModel extends BaseModel<LLMConfig> {
           }
           lastError = null;
           break;
-        } catch (e) {
-          lastError = e instanceof Error ? e : new Error(String(e));
-          if (typeof console !== 'undefined' && console.log) {
-            console.log(
-              '[LLMModel] device failed:',
-              dev,
-              '| error:',
-              (lastError as Error).message
-            );
-          }
-          // Próbuj kolejnego urządzenia
+        } catch (err) {
+          const logger = getConfig().logger;
+          logger.debug('[transformers-router] load LLM fallback', { from: dev, error: (err as Error)?.message });
+          lastError = err instanceof Error ? err : new Error(String(err));
         }
       }
 
       if (!this.loaded) {
-        throw lastError || new Error('Unknown error during LLM model load');
+        throw lastError || new ModelLoadError('Unknown error during LLM model load', this.config.model, 'llm');
       }
     } catch (error) {
       this.loaded = false;
-      throw new Error(
-        `Failed to load LLM model ${this.config.model}: ${(error as Error).message}`
+      throw new ModelLoadError(
+        `Failed to load LLM model ${this.config.model}: ${(error as Error).message}`,
+        this.config.model,
+        'llm',
+        error as Error
       );
     } finally {
       this.loading = false;
@@ -333,7 +328,7 @@ export class LLMModel extends BaseModel<LLMConfig> {
         const arr = Array.isArray(gen) ? (gen as Message[]) : [];
         const lastMessage = arr.at(-1);
         if (!lastMessage) {
-          throw new Error('No response generated');
+          throw new InferenceError('No response generated', 'llm');
         }
         generatedMessage = lastMessage;
       } else {
@@ -346,7 +341,7 @@ export class LLMModel extends BaseModel<LLMConfig> {
       }
 
       if (!generatedMessage) {
-        throw new Error('No response generated');
+        throw new InferenceError('No response generated', 'llm');
       }
 
       // Calculate token usage (approximate)
@@ -366,7 +361,7 @@ export class LLMModel extends BaseModel<LLMConfig> {
         finishReason: 'stop',
       };
     } catch (error) {
-      throw new Error(`Chat generation failed: ${(error as Error).message}`);
+      throw new InferenceError(`Chat generation failed: ${(error as Error).message}`, 'llm', error as Error);
     }
   }
 
@@ -413,7 +408,7 @@ export class LLMModel extends BaseModel<LLMConfig> {
       const result = await pipeline(prompt, generationOptions);
       return result[0].generated_text;
     } catch (error) {
-      throw new Error(`Completion failed: ${(error as Error).message}`);
+      throw new InferenceError(`Completion failed: ${(error as Error).message}`, 'llm', error as Error);
     }
   }
 

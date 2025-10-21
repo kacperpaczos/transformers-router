@@ -3,7 +3,7 @@
  * Provides compatibility with LangChain.js framework
  */
 
-import type { AIProvider } from '../core/AIProvider';
+import type { AIProvider } from '@app/AIProvider';
 import type { Message } from '../core/types';
 
 /**

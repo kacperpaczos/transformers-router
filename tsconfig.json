@@ -14,7 +14,15 @@
     "declarationMap": true,
     "sourceMap": true,
     "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": "./src",
+    "paths": {
+      "@domain/*": ["domain/*"],
+      "@app/*": ["app/*"],
+      "@infra/*": ["infra/*"],
+      "@adapters/*": ["adapters/*"],
+      "@ui/*": ["ui/*"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": [
@@ -24,8 +32,7 @@
     "**/*.spec.ts",
     "**/*.tsx",
     "**/*.vue",
-    "src/react/**/*",
-    "src/vue/**/*",
+    "src/ui/**/*",
     "examples/**/*"
   ]
 }

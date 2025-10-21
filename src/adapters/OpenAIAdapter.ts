@@ -9,7 +9,7 @@ import type {
   OpenAICompletionResponse,
   Message,
 } from '../core/types';
-import { AIProvider } from '../core/AIProvider';
+import { AIProvider } from '@app/AIProvider';
 
 export class OpenAIAdapter {
   private provider: AIProvider;

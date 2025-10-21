@@ -10,7 +10,7 @@ export default [
   prettierConfig,
   {
     files: ['src/**/*.ts'],
-    ignores: ['src/**/*.test.ts', 'src/react/**/*', 'src/vue/**/*'],
+    ignores: ['src/**/*.test.ts', 'src/ui/**/*'],
     languageOptions: {
       parser: tsparser,
       parserOptions: {

@@ -1,12 +1,12 @@
+// Initialization
+export { init, dispose } from './app/init';
+
 // Main AI Provider
-export { AIProvider, createAIProvider } from './core/AIProvider';
+export { AIProvider, createAIProvider } from './app/AIProvider';
 
 // Web Workers Support (Phase 2)
-export {
-  AIProviderWorker,
-  createAIProviderWorker,
-} from './workers/AIProviderWorker';
-export { WorkerPool } from './workers/WorkerPool';
+export { AIProviderWorker, createAIProviderWorker } from './infra/workers/AIProviderWorker';
+export { WorkerPool } from './infra/workers/WorkerPool';
 
 // Adapters
 export { OpenAIAdapter } from './adapters/OpenAIAdapter';
@@ -24,8 +24,8 @@ export { STTModel } from './models/STTModel';
 export { EmbeddingModel } from './models/EmbeddingModel';
 
 // Core classes
-export { ModelManager } from './core/ModelManager';
-export { ModelCache } from './core/ModelCache';
+export { ModelManager } from './app/ModelManager';
+export { ModelCache } from './app/cache/ModelCache';
 
 // Voice Profile system
 export {
@@ -83,3 +83,37 @@ export type {
   AudioMetadata,
 } from './utils/AudioConverter';
 export { audioConverter, AudioConverter } from './utils/AudioConverter';
+
+// Legacy router (for backward compatibility)
+export { TransformersRouter, Route, RouterOptions } from './app/router';
+
+// Logger interface
+export type { Logger } from './domain/logging/Logger';
+export type { InitOptions, RuntimeConfig } from './domain/config/Config';
+
+// Domain errors
+export {
+  ValidationError,
+  ModelUnavailableError,
+  ModelLoadError,
+  ModelNotLoadedError,
+  InferenceError,
+  InitializationError,
+  ConfigurationError,
+} from './domain/errors';
+
+// Domain model contracts
+export type {
+  IModel,
+  ILLMModel,
+  ITTSModel,
+  ISTTModel,
+  IEmbeddingModel,
+} from './domain/models';
+
+// Model registry functions
+export {
+  registerModel,
+  getRegisteredModels,
+  getRegisteredModel,
+} from './app/state';

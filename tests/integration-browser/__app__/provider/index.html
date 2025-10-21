@@ -15,17 +15,22 @@
   </script>
 </head>
 <body>
-  <div id="root" class="panel">
-    <h2>Provider API Host</h2>
-    <div class="status-row">
-      <div data-testid="status">idle</div>
-      <div data-testid="file">-</div>
-      <div data-testid="progress">0</div>
-    </div>
+  <div class="header-nav" style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+    <button class="btn" onclick="window.location.href='/tests/integration-browser/__assets__/index.html'">← Back to Menu</button>
+    <h2 style="margin:0;">Provider API Host</h2>
+  </div>
 
-    <div class="progressbar">
-      <div class="progressbar__fill"></div>
-    </div>
+  <div class="status-row">
+    <div data-testid="status">idle</div>
+    <div data-testid="file">-</div>
+    <div data-testid="progress">0</div>
+  </div>
+  <div class="progressbar">
+    <div class="progressbar__fill"></div>
+  </div>
+
+  <div id="root" class="panel">
+    <!-- Provider-specific content will be added by main.js -->
   </div>
 
   <script type="module" src="./main.js"></script>
