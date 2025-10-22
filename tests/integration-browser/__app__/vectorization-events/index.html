@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vectorization Events</title>
+  <link rel="stylesheet" href="/tests/integration-browser/__assets__/common.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "@huggingface/transformers": "/node_modules/@huggingface/transformers/dist/transformers.min.js",
+        "onnxruntime-web": "/node_modules/onnxruntime-web/dist/ort.min.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="header-nav" style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+    <button class="btn" onclick="window.location.href='/tests/integration-browser/__assets__/index.html'">← Back to Menu</button>
+    <h2 style="margin:0;">Vectorization - Events & Resource Monitoring</h2>
+  </div>
+
+  <div class="status-row">
+    <div data-testid="status">idle</div>
+    <div data-testid="events-count">0</div>
+    <div data-testid="usage-cpu">0ms</div>
+  </div>
+
+  <div class="panel">
+    <div class="form-group">
+      <button id="load-samples-btn" class="btn">Load Sample Files</button>
+      <button id="run-queries-btn" class="btn">Run Sample Queries</button>
+      <button id="clear-storage-btn" class="btn">Clear Storage</button>
+    </div>
+
+    <div class="form-group">
+      <h3>Event Log:</h3>
+      <div id="event-log" style="height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 8px; font-family: monospace; font-size: 12px;">
+        <div data-testid="events-list">No events yet...</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <h3>Resource Usage:</h3>
+      <div data-testid="resource-usage">Loading...</div>
+      <div data-testid="quota-warnings">-</div>
+    </div>
+
+    <div class="form-group">
+      <h3>Configuration:</h3>
+      <select id="threshold-select">
+        <option value="0.5">Warning: 50%</option>
+        <option value="0.7">Warning: 70%</option>
+        <option value="0.9">Warning: 90%</option>
+      </select>
+      <button id="restart-btn" class="btn">Restart Service</button>
+    </div>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

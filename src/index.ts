@@ -30,6 +30,10 @@ export { EmbeddingModel } from './models/EmbeddingModel';
 export { ModelManager } from './app/ModelManager';
 export { ModelCache } from './app/cache/ModelCache';
 
+// Vectorization service
+export { VectorizationService } from './app/vectorization/VectorizationService';
+export type { VectorizationResult, QueryResult } from './app/vectorization/VectorizationService';
+
 // Backend and AutoScaling
 export { BackendSelector } from './app/backend/BackendSelector';
 export { AutoScaler } from './app/autoscaler/AutoScaler';

@@ -16,6 +16,9 @@ export type {
 // Wspierane modalności
 export type Modality = 'llm' | 'tts' | 'stt' | 'embedding';
 
+// Vectorization modalities (for multimedia embeddings)
+export type VectorModality = 'audio' | 'image' | 'video'; // video→audio
+
 // Device types
 export type Device = 'cpu' | 'gpu' | 'webgpu';
 
@@ -263,4 +266,36 @@ export interface CachedModel {
   config: ModelConfig;
   loadedAt: number;
   lastUsedAt: number;
+}
+
+// Vectorization types
+export interface VectorizationServiceConfig {
+  preferAcceleration?: 'webgpu' | 'wasm';
+  storage: 'indexeddb' | 'opfs';
+  externalMock?: { enabled: boolean; latencyMs?: number; errorRate?: number };
+  quotaThresholds?: { warn: number; high: number; critical: number }; // 0-1
+}
+
+export interface VectorDocMeta {
+  id: string;
+  modality: VectorModality;
+  mime: string;
+  sizeBytes: number;
+  createdAt: number;
+  [k: string]: unknown;
+}
+
+export interface QueryOptions {
+  k?: number;
+  filter?: Partial<VectorDocMeta>;
+}
+
+export interface ResourceUsageSnapshot {
+  cpuMs: number;
+  memoryMB?: number;
+  storageUsedMB: number;
+  storageLimitMB?: number;
+  modelDownloadsMB: number;
+  gpu?: { backend: 'webgpu' | 'wasm'; usedMB?: number };
+  timestamp: number;
 }
