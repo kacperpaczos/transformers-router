@@ -86,7 +86,10 @@ export class AudioConverter {
       return this.fromBlob(audio, targetSampleRate);
     }
 
-    throw new ValidationError(`Unsupported audio input type: ${typeof audio}`, 'audioType');
+    throw new ValidationError(
+      `Unsupported audio input type: ${typeof audio}`,
+      'audioType'
+    );
   }
 
   /**

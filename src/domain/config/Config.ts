@@ -10,5 +10,3 @@ export interface RuntimeConfig {
   debug: boolean;
   logger: Logger;
 }
-
-

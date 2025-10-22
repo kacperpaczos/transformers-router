@@ -2,10 +2,11 @@
  * Embedding Model for text embeddings (for RAG, semantic search)
  */
 
-import type { EmbeddingConfig, EmbeddingOptions } from '../core/types';
+import type { EmbeddingConfig, EmbeddingOptions, Device } from '../core/types';
 import { BaseModel } from './BaseModel';
 import { getConfig } from '../app/state';
 import { ModelLoadError, InferenceError } from '@domain/errors';
+import type { BackendSelector } from '../app/backend/BackendSelector';
 
 // Interface for Tensor from Transformers.js
 interface Tensor {
@@ -27,8 +28,11 @@ async function getTransformers() {
 }
 
 export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
-  constructor(config: EmbeddingConfig) {
+  private backendSelector?: BackendSelector;
+
+  constructor(config: EmbeddingConfig, backendSelector?: BackendSelector) {
     super('embedding', config);
+    this.backendSelector = backendSelector;
   }
 
   /**
@@ -78,20 +82,35 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
         }
       }
 
-      const desiredDevice =
-        (this.config.device as string | undefined) ||
-        (isBrowser ? (webgpuAdapterAvailable ? 'webgpu' : 'wasm') : 'cpu');
-      const tryOrder = (() => {
-        if (isBrowser) {
-          if (desiredDevice === 'webgpu')
-            return webgpuAdapterAvailable ? ['webgpu', 'wasm'] : ['wasm'];
-          if (desiredDevice === 'wasm') return ['wasm'];
-          return ['wasm'];
-        }
-        return desiredDevice === 'webgpu'
-          ? ['webgpu', 'cpu']
-          : [desiredDevice, ...(desiredDevice !== 'cpu' ? ['cpu'] : [])];
-      })();
+      // Use BackendSelector if available, otherwise fallback to old logic
+      const desiredDevice = this.config.device as string | undefined;
+      let tryOrder: string[];
+
+      if (this.backendSelector) {
+        // Use BackendSelector for device fallback logic
+        const fallbackDevice =
+          desiredDevice ||
+          (isBrowser ? (webgpuAdapterAvailable ? 'webgpu' : 'wasm') : 'cpu');
+        tryOrder = this.backendSelector.getDeviceFallbackOrder(
+          fallbackDevice as Device | 'wasm'
+        );
+      } else {
+        // Fallback to old logic if BackendSelector not available
+        const fallbackDevice =
+          desiredDevice ||
+          (isBrowser ? (webgpuAdapterAvailable ? 'webgpu' : 'wasm') : 'cpu');
+        tryOrder = (() => {
+          if (isBrowser) {
+            if (fallbackDevice === 'webgpu')
+              return webgpuAdapterAvailable ? ['webgpu', 'wasm'] : ['wasm'];
+            if (fallbackDevice === 'wasm') return ['wasm'];
+            return ['wasm'];
+          }
+          return fallbackDevice === 'webgpu'
+            ? ['webgpu', 'cpu']
+            : [fallbackDevice, ...(fallbackDevice !== 'cpu' ? ['cpu'] : [])];
+        })();
+      }
       if (typeof console !== 'undefined' && console.log) {
         console.log('[EmbeddingModel] load(): env', {
           isBrowser,
@@ -110,7 +129,11 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
           if (typeof console !== 'undefined' && console.log) {
             console.log('[EmbeddingModel] attempting device:', dev);
           }
-          if (env?.backends?.onnx) {
+          // Configure ONNX backend using BackendSelector if available
+          if (this.backendSelector && env?.backends?.onnx) {
+            this.backendSelector.configureONNXBackend(dev, env);
+          } else if (env?.backends?.onnx) {
+            // Fallback to old ONNX configuration logic
             const onnxBackends = env.backends.onnx as {
               backendHint?: string;
               wasm?: { simd?: boolean; numThreads?: number };
@@ -148,14 +171,25 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
             }
           }
 
-          const pipelineDevice = dev === 'wasm' ? 'cpu' : (dev as 'cpu' | 'gpu' | 'webgpu');
+          const pipelineDevice = this.backendSelector
+            ? this.backendSelector.getPipelineDevice(dev)
+            : dev === 'wasm'
+              ? 'cpu'
+              : (dev as 'cpu' | 'gpu' | 'webgpu');
           const logger = getConfig().logger;
-          logger.debug('[transformers-router] load Embedding try', { device: dev, dtype });
-          this.pipeline = await pipeline('feature-extraction', this.config.model, {
+          logger.debug('[transformers-router] load Embedding try', {
+            device: dev,
             dtype,
-            device: pipelineDevice,
-            progress_callback: progressCallback,
           });
+          this.pipeline = await pipeline(
+            'feature-extraction',
+            this.config.model,
+            {
+              dtype,
+              device: pipelineDevice,
+              progress_callback: progressCallback,
+            }
+          );
 
           this.loaded = true;
           if (typeof console !== 'undefined' && console.log) {
@@ -168,13 +202,23 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
           break;
         } catch (err) {
           const logger = getConfig().logger;
-          logger.debug('[transformers-router] load Embedding fallback', { from: dev, error: (err as Error)?.message });
+          logger.debug('[transformers-router] load Embedding fallback', {
+            from: dev,
+            error: (err as Error)?.message,
+          });
           lastError = err instanceof Error ? err : new Error(String(err));
         }
       }
 
       if (!this.loaded) {
-        throw lastError || new ModelLoadError('Unknown error during Embedding model load', this.config.model, 'embedding');
+        throw (
+          lastError ||
+          new ModelLoadError(
+            'Unknown error during Embedding model load',
+            this.config.model,
+            'embedding'
+          )
+        );
       }
     } catch (error) {
       this.loaded = false;
@@ -212,7 +256,11 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
       // Type-safe conversion
       return this.tensorToArray(result);
     } catch (error) {
-      throw new InferenceError(`Embedding generation failed: ${(error as Error).message}`, 'embedding', error as Error);
+      throw new InferenceError(
+        `Embedding generation failed: ${(error as Error).message}`,
+        'embedding',
+        error as Error
+      );
     }
   }
 
@@ -251,7 +299,10 @@ export class EmbeddingModel extends BaseModel<EmbeddingConfig> {
    */
   cosineSimilarity(embedding1: number[], embedding2: number[]): number {
     if (embedding1.length !== embedding2.length) {
-      throw new InferenceError('Embeddings must have the same dimension', 'embedding');
+      throw new InferenceError(
+        'Embeddings must have the same dimension',
+        'embedding'
+      );
     }
 
     let dotProduct = 0;

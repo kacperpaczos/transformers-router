@@ -10,7 +10,6 @@ import type {
   STTConfig,
   EmbeddingConfig,
   ModelStatus,
-  Device,
 } from '../core/types';
 import { ModelCache } from './cache/ModelCache';
 import { BaseModel } from '../models/BaseModel';
@@ -22,6 +21,8 @@ import { ProgressTracker } from '../utils/ProgressTracker';
 import { EventEmitter } from '@infra/events/EventEmitter';
 import { getConfig } from './state';
 import { ModelUnavailableError } from '@domain/errors';
+import { AutoScaler } from './autoscaler/AutoScaler';
+import { BackendSelector } from './backend/BackendSelector';
 
 export class ModelManager {
   private cache: ModelCache;
@@ -29,6 +30,8 @@ export class ModelManager {
   private configs: Map<Modality, ModelConfig>;
   private progressTracker: ProgressTracker;
   private eventEmitter: EventEmitter;
+  private autoScaler: AutoScaler;
+  private backendSelector: BackendSelector;
 
   constructor(eventEmitter: EventEmitter) {
     this.cache = new ModelCache();
@@ -36,6 +39,8 @@ export class ModelManager {
     this.configs = new Map();
     this.eventEmitter = eventEmitter;
     this.progressTracker = new ProgressTracker(eventEmitter);
+    this.backendSelector = new BackendSelector();
+    this.autoScaler = new AutoScaler(this.backendSelector);
   }
 
   /**
@@ -60,7 +65,7 @@ export class ModelManager {
     }
 
     // Auto-scaler: optionally adjust config based on capabilities and performanceMode
-    const scaledConfig = this.autoScaleConfig(modality, config);
+    const scaledConfig = this.autoScaler.autoScale(modality, config);
     if (scaledConfig !== config) {
       const logger = getConfig().logger;
       logger.debug('[transformers-router] autoscale', {
@@ -209,15 +214,22 @@ export class ModelManager {
   ): BaseModel {
     switch (modality) {
       case 'llm':
-        return new LLMModel(config as LLMConfig);
+        return new LLMModel(config as LLMConfig, this.backendSelector);
       case 'tts':
-        return new TTSModel(config as TTSConfig);
+        return new TTSModel(config as TTSConfig, this.backendSelector);
       case 'stt':
-        return new STTModel(config as STTConfig);
+        return new STTModel(config as STTConfig, this.backendSelector);
       case 'embedding':
-        return new EmbeddingModel(config as EmbeddingConfig);
+        return new EmbeddingModel(
+          config as EmbeddingConfig,
+          this.backendSelector
+        );
       default:
-        throw new ModelUnavailableError(`Unknown modality: ${modality}`, modality, modality);
+        throw new ModelUnavailableError(
+          `Unknown modality: ${modality}`,
+          modality,
+          modality
+        );
     }
   }
 
@@ -233,34 +245,9 @@ export class ModelManager {
   }
 
   /**
-   * Auto-scale config: choose device/dtype/maxTokens based on capabilities
-   * Non-invasive: respects explicit user settings unless performanceMode === 'auto'
+   * Get BackendSelector instance for use by models
    */
-  private autoScaleConfig(modality: Modality, config: ModelConfig): ModelConfig {
-    const cfg = config as Partial<LLMConfig & TTSConfig & STTConfig & EmbeddingConfig> & { performanceMode?: 'auto' | 'fast' | 'quality' };
-    const perfMode = cfg.performanceMode;
-    if (perfMode !== 'auto') {
-      return config;
-    }
-
-    const isBrowser = typeof navigator !== 'undefined';
-    const hasWebGPU = isBrowser && 'gpu' in navigator;
-    const cores = isBrowser ? (navigator.hardwareConcurrency || 2) : 2;
-    const targetDevice: Device | 'wasm' = hasWebGPU ? 'webgpu' : 'wasm';
-
-    const next: Partial<LLMConfig & TTSConfig & STTConfig & EmbeddingConfig> = { ...cfg };
-    if (!next.device) next.device = targetDevice as Device;
-
-    if (!next.dtype) {
-      next.dtype = 'q4';
-    }
-
-    if (modality === 'llm' && (next as LLMConfig).maxTokens == null) {
-      (next as LLMConfig).maxTokens = 20;
-    }
-
-    void cores; // reserved for future heuristics
-
-    return next as ModelConfig;
+  getBackendSelector(): BackendSelector {
+    return this.backendSelector;
   }
 }

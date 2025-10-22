@@ -42,7 +42,10 @@ export class AIProviderWorker {
         // Wait a bit for workers to initialize
         await new Promise(resolve => setTimeout(resolve, 100));
       } else {
-        throw new ValidationError('WorkerPool requires browser environment with import.meta.url support', 'environment');
+        throw new ValidationError(
+          'WorkerPool requires browser environment with import.meta.url support',
+          'environment'
+        );
       }
     }
     return this.workerPool;
@@ -119,7 +122,10 @@ export class AIProviderWorker {
         finishReason: 'stop',
       };
     } catch (error) {
-      throw new ValidationError(`Chat failed: ${(error as Error).message}`, 'llm');
+      throw new ValidationError(
+        `Chat failed: ${(error as Error).message}`,
+        'llm'
+      );
     }
   }
 
@@ -150,7 +156,10 @@ export class AIProviderWorker {
 
       return result.text;
     } catch (error) {
-      throw new ValidationError(`Completion failed: ${(error as Error).message}`, 'llm');
+      throw new ValidationError(
+        `Completion failed: ${(error as Error).message}`,
+        'llm'
+      );
     }
   }
 

@@ -58,7 +58,7 @@ export class WorkerPool {
         }
       );
 
-      worker.addEventListener('error', (error) => {
+      worker.addEventListener('error', error => {
         const logger = getConfig().logger;
         logger.error('Worker error:', error);
         this.handleWorkerError(worker, error);

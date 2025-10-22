@@ -26,5 +26,3 @@ export async function init(options: InitOptions = {}): Promise<void> {
 export async function dispose(): Promise<void> {
   resetState();
 }
-
-
