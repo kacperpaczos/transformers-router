@@ -32,7 +32,14 @@ export { ModelCache } from './app/cache/ModelCache';
 
 // Vectorization service
 export { VectorizationService } from './app/vectorization/VectorizationService';
-export type { VectorizationResult, QueryResult } from './app/vectorization/VectorizationService';
+export type {
+  VectorizationResult,
+  QueryResult,
+  VectorizeOptions,
+  QueryVectorizeOptions,
+  ProgressEventData,
+  ChunkingOptions,
+} from './core/types';
 
 // Backend and AutoScaling
 export { BackendSelector } from './app/backend/BackendSelector';
@@ -85,6 +92,12 @@ export type {
   OpenAIChatCompletionResponse,
   OpenAICompletionRequest,
   OpenAICompletionResponse,
+  VectorizeOptions,
+  QueryVectorizeOptions,
+  ProgressEventData,
+  ChunkingOptions,
+  VectorizationStage,
+  JobStatus,
 } from './core/types';
 
 // Utility types and classes
@@ -94,6 +107,19 @@ export type {
   AudioMetadata,
 } from './utils/AudioConverter';
 export { audioConverter, AudioConverter } from './utils/AudioConverter';
+
+// Progress tracking
+export { ProgressTracker } from './utils/ProgressTracker';
+export type {
+  JobMetadata,
+  StageProgress,
+  JobStatus,
+  VectorizationStage,
+  VectorizationProgressEventData,
+  VectorizeOptions,
+  QueryVectorizeOptions,
+  ChunkingOptions,
+} from './core/types';
 
 // Legacy router (for backward compatibility)
 export { TransformersRouter, Route, RouterOptions } from './app/router';
@@ -128,3 +154,21 @@ export {
   getRegisteredModels,
   getRegisteredModel,
 } from './app/state';
+
+// UI Hooks (React and Vue)
+export { useAIProvider, useChat, useVectorization } from './ui/react';
+
+export {
+  useAIProvider as useAIProviderVue,
+  useChat as useChatVue,
+  useVectorization as useVectorizationVue,
+} from './ui/vue';
+
+export type {
+  UseAIProviderOptions,
+  UseAIProviderReturn,
+  UseChatOptions,
+  UseChatReturn,
+  UseVectorizationOptions,
+  UseVectorizationReturn,
+} from './ui/react';

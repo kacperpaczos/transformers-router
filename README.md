@@ -10,6 +10,7 @@ A powerful TypeScript wrapper for [Transformers.js](https://huggingface.co/docs/
 - 🔊 **Speech Synthesis (TTS)** - Convert text to speech
 - 🎤 **Speech Recognition (STT)** - Transcribe audio with Whisper
 - 🔍 **Embeddings** - Generate text embeddings for RAG and semantic search
+- 📁 **Vectorization** - Multimodal file processing with progress tracking (PDF, DOCX, MP3/WAV, MP4, URLs)
 - 🔄 **OpenAI-Compatible** - Drop-in replacement for OpenAI API
 - 📦 **Model Caching** - Automatic model management and caching
 - 📊 **Progress Tracking** - Monitor model download and loading
@@ -38,6 +39,167 @@ const provider = createAIProvider({
 // Chat with the model
 const response = await provider.chat('Hello! How are you?');
 console.log(response.content);
+```
+
+## Vectorization with Progress Tracking
+
+Transformers Router now supports comprehensive vectorization of multimedia files with detailed progress tracking, perfect for building RAG applications, document search, and multimodal AI agents.
+
+### Supported File Types
+
+- 📄 **PDF** - Text extraction with optional OCR fallback
+- 📝 **DOCX** - Document processing with structure preservation
+- 🔗 **URLs** - Web page content extraction (HTML to text)
+- 🎵 **MP3/WAV** - Audio processing with CLAP embeddings or STT fallback
+- 🎬 **MP4** - Video processing with audio demuxing and optional frame analysis
+
+### Quick Vectorization Example
+
+```typescript
+import { createAIProvider } from 'transformers-router';
+
+// Initialize with vectorization
+const provider = createAIProvider();
+await provider.initializeVectorization({
+  storage: 'indexeddb',
+  preferAcceleration: 'webgpu'
+});
+
+// Vectorize files with progress tracking
+const pdfFile = new File(['...'], 'document.pdf', { type: 'application/pdf' });
+
+// Using AsyncGenerator for real-time progress
+for await (const progress of provider.vectorizeWithProgress(pdfFile)) {
+  console.log(`Progress: ${progress.progress * 100}%`);
+  console.log(`Stage: ${progress.stage}`);
+  console.log(`Message: ${progress.message}`);
+
+  if (progress.error) {
+    console.error('Error:', progress.error.message);
+    break;
+  }
+}
+
+// Or using React hook
+import { useVectorization } from 'transformers-router';
+
+// In React component
+const { currentProgress, currentStage, vectorize } = useVectorization();
+
+const handleUpload = async (file: File) => {
+  for await (const progress of vectorize(file)) {
+    // UI updates automatically via reactive state
+    console.log(`Progress: ${currentProgress.value}%`);
+  }
+};
+```
+
+### React Hook Example
+
+```typescript
+import { useVectorization } from 'transformers-router';
+
+function DocumentProcessor() {
+  const {
+    isInitialized,
+    currentProgress,
+    currentStage,
+    currentMessage,
+    vectorize,
+    query
+  } = useVectorization({
+    autoInitialize: true,
+    config: {
+      storage: 'indexeddb',
+      chunking: {
+        strategy: 'recursive',
+        chunkSize: 1000,
+        chunkOverlap: 100
+      }
+    }
+  });
+
+  const handleVectorize = async (file: File) => {
+    try {
+      for await (const progress of vectorize(file)) {
+        // Progress updates automatically in UI
+      }
+
+      // Query similar documents
+      const results = await query('find similar documents');
+      console.log('Results:', results);
+    } catch (error) {
+      console.error('Vectorization failed:', error);
+    }
+  };
+
+  return (
+    <div>
+      <input type="file" onChange={(e) => handleVectorize(e.target.files[0])} />
+      <div>Progress: {Math.round(currentProgress * 100)}%</div>
+      <div>Stage: {currentStage}</div>
+      <div>Message: {currentMessage}</div>
+    </div>
+  );
+}
+```
+
+### Vue Composable Example
+
+```typescript
+import { useVectorization } from 'transformers-router';
+
+export default {
+  setup() {
+    const {
+      isInitialized,
+      currentProgress,
+      currentStage,
+      vectorize
+    } = useVectorization({
+      autoInitialize: true,
+      config: { storage: 'indexeddb' }
+    });
+
+    const handleVectorize = async (file: File) => {
+      try {
+        for await (const progress of vectorize(file)) {
+          // Reactive updates in template
+        }
+      } catch (error) {
+        console.error('Vectorization failed:', error);
+      }
+    };
+
+    return {
+      isInitialized,
+      currentProgress,
+      currentStage,
+      handleVectorize
+    };
+  }
+};
+```
+
+### Configuration Options
+
+```typescript
+interface VectorizeOptions {
+  modality?: 'text' | 'image' | 'audio' | 'video';
+  chunking?: {
+    strategy: 'recursive' | 'semantic' | 'fixed';
+    chunkSize: number;
+    chunkOverlap: number;
+  };
+  audioMode?: 'clap' | 'stt' | 'auto';
+  videoOptions?: {
+    extractFrames: boolean;
+    framesEverySec: number;
+    audioWeight: number;
+  };
+  ocrEnabled?: boolean;
+  maxFileSizeMB?: number;
+}
 ```
 
 ## API Reference

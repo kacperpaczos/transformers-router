@@ -45,7 +45,10 @@ export interface ResourceUsageEstimator {
   /**
    * Check if usage exceeds thresholds
    */
-  checkThresholds(usage: ResourceUsageSnapshot): { level: ResourceLevel; exceeded: string[] };
+  checkThresholds(usage: ResourceUsageSnapshot): {
+    level: ResourceLevel;
+    exceeded: string[];
+  };
 
   /**
    * Start measuring resource usage for an operation

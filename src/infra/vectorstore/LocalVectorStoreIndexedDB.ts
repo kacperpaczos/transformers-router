@@ -2,7 +2,12 @@
  * Local Vector Store implementation using IndexedDB
  */
 
-import type { VectorStore, VectorDocument, VectorQueryResult, QueryOptions } from './VectorStore';
+import type {
+  VectorStore,
+  VectorDocument,
+  VectorQueryResult,
+  QueryOptions,
+} from './VectorStore';
 import type { VectorDocMeta } from '../../core/types';
 
 interface StoredDocument {
@@ -33,21 +38,24 @@ export class LocalVectorStoreIndexedDB implements VectorStore {
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, 1);
 
-      request.onerror = () => reject(new Error(`IndexedDB error: ${request.error}`));
+      request.onerror = () =>
+        reject(new Error(`IndexedDB error: ${request.error}`));
 
       request.onsuccess = () => {
         this.db = request.result;
         resolve();
       };
 
-      request.onupgradeneeded = (event) => {
+      request.onupgradeneeded = event => {
         const db = (event.target as IDBOpenDBRequest).result;
 
         // Create object store if it doesn't exist
         if (!db.objectStoreNames.contains(this.storeName)) {
           const store = db.createObjectStore(this.storeName, { keyPath: 'id' });
           store.createIndex('modality', 'metadata.modality', { unique: false });
-          store.createIndex('createdAt', 'metadata.createdAt', { unique: false });
+          store.createIndex('createdAt', 'metadata.createdAt', {
+            unique: false,
+          });
           store.createIndex('mime', 'metadata.mime', { unique: false });
         }
       };
@@ -74,7 +82,8 @@ export class LocalVectorStoreIndexedDB implements VectorStore {
 
         const request = store.put(storedDoc);
         request.onsuccess = () => resolve();
-        request.onerror = () => reject(new Error(`Failed to store document ${doc.id}`));
+        request.onerror = () =>
+          reject(new Error(`Failed to store document ${doc.id}`));
       });
     });
 
@@ -84,7 +93,10 @@ export class LocalVectorStoreIndexedDB implements VectorStore {
   /**
    * Query vectors using cosine similarity
    */
-  async query(queryVector: Float32Array, options: QueryOptions = {}): Promise<VectorQueryResult[]> {
+  async query(
+    queryVector: Float32Array,
+    options: QueryOptions = {}
+  ): Promise<VectorQueryResult[]> {
     await this.ensureInitialized();
 
     const { k = 10, filter } = options;
@@ -92,7 +104,10 @@ export class LocalVectorStoreIndexedDB implements VectorStore {
 
     // Calculate similarities
     const resultsWithScores: VectorQueryResult[] = allResults.map(doc => {
-      const score = this.cosineSimilarity(queryVector, new Float32Array(doc.vector));
+      const score = this.cosineSimilarity(
+        queryVector,
+        new Float32Array(doc.vector)
+      );
       return {
         id: doc.id,
         score,
@@ -118,7 +133,8 @@ export class LocalVectorStoreIndexedDB implements VectorStore {
       return new Promise<void>((resolve, reject) => {
         const request = store.delete(id);
         request.onsuccess = () => resolve();
-        request.onerror = () => reject(new Error(`Failed to delete document ${id}`));
+        request.onerror = () =>
+          reject(new Error(`Failed to delete document ${id}`));
       });
     });
 
@@ -173,7 +189,9 @@ export class LocalVectorStoreIndexedDB implements VectorStore {
     }
   }
 
-  private async getAllDocuments(filter?: Partial<VectorDocMeta>): Promise<StoredDocument[]> {
+  private async getAllDocuments(
+    filter?: Partial<VectorDocMeta>
+  ): Promise<StoredDocument[]> {
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([this.storeName], 'readonly');
       const store = transaction.objectStore(this.storeName);

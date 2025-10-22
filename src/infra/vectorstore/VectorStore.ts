@@ -32,7 +32,10 @@ export interface VectorStore {
   /**
    * Query the vector store for similar vectors
    */
-  query(queryVector: Float32Array, options?: QueryOptions): Promise<VectorQueryResult[]>;
+  query(
+    queryVector: Float32Array,
+    options?: QueryOptions
+  ): Promise<VectorQueryResult[]>;
 
   /**
    * Delete vectors from the store

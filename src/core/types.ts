@@ -276,6 +276,38 @@ export interface VectorizationServiceConfig {
   quotaThresholds?: { warn: number; high: number; critical: number }; // 0-1
 }
 
+export interface ChunkingOptions {
+  strategy: 'recursive' | 'semantic' | 'fixed';
+  chunkSize: number;
+  chunkOverlap: number;
+  separators?: string[];
+}
+
+export interface VectorizeOptions {
+  modality?: VectorModality;
+  chunking?: ChunkingOptions;
+  audioMode?: 'clap' | 'stt' | 'auto';
+  videoOptions?: {
+    extractFrames: boolean;
+    framesEverySec: number;
+    audioWeight: number; // 0-1, for fusion
+  };
+  ocrEnabled?: boolean;
+  maxFileSizeMB?: number;
+  concurrency?: number;
+  batchSize?: number;
+  onProgress?: (event: ProgressEventData) => void;
+  signal?: AbortSignal;
+}
+
+export interface QueryVectorizeOptions {
+  k?: number;
+  filter?: Partial<VectorDocMeta>;
+  modality?: VectorModality;
+  scoreThreshold?: number;
+  onProgress?: (event: ProgressEventData) => void;
+}
+
 export interface VectorDocMeta {
   id: string;
   modality: VectorModality;
@@ -298,4 +330,52 @@ export interface ResourceUsageSnapshot {
   modelDownloadsMB: number;
   gpu?: { backend: 'webgpu' | 'wasm'; usedMB?: number };
   timestamp: number;
+}
+
+// Vectorization progress and job types
+export type VectorizationStage =
+  | 'queued'
+  | 'initializing'
+  | 'extracting'
+  | 'sanitizing'
+  | 'chunking'
+  | 'embedding'
+  | 'upserting'
+  | 'finalizing';
+
+export type JobStatus =
+  | 'queued'
+  | 'running'
+  | 'completed'
+  | 'error'
+  | 'cancelled';
+
+export interface VectorizationProgressEventData {
+  jobId: string;
+  inputMeta: {
+    modality: VectorModality;
+    mime: string;
+    sizeBytes: number;
+    url?: string;
+  };
+  stage: VectorizationStage;
+  stageIndex: number;
+  totalStages: number;
+  stageProgress: number; // 0-1
+  progress: number; // 0-1 (global)
+  etaMs?: number;
+  bytesProcessed?: number;
+  itemsProcessed?: number;
+  chunksTotal?: number;
+  message?: string;
+  partialResult?: {
+    indexedIds?: string[];
+    failedItems?: string[];
+  };
+  warnings?: string[];
+  error?: {
+    stage: VectorizationStage;
+    message: string;
+    retriable?: boolean;
+  };
 }
