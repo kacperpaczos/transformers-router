@@ -8,10 +8,12 @@ import type {
   ChatResponse,
   ChatOptions,
   CompletionOptions,
+  Device,
 } from '../core/types';
 import { BaseModel } from './BaseModel';
 import { getConfig } from '../app/state';
 import { ModelLoadError, InferenceError } from '@domain/errors';
+import type { BackendSelector } from '../app/backend/BackendSelector';
 
 // Type definitions for LLM pipeline components
 interface LLMTokenizer {
@@ -43,8 +45,11 @@ async function getTransformers() {
 }
 
 export class LLMModel extends BaseModel<LLMConfig> {
-  constructor(config: LLMConfig) {
+  private backendSelector?: BackendSelector;
+
+  constructor(config: LLMConfig, backendSelector?: BackendSelector) {
     super('llm', config);
+    this.backendSelector = backendSelector;
   }
 
   /**
@@ -109,26 +114,35 @@ export class LLMModel extends BaseModel<LLMConfig> {
         }
       }
 
-      // Auto-detect device:
-      // - Browser: prefer WebGPU if available, otherwise WASM; never fall back to CPU in browser
-      // - Node: use provided device or CPU by default
-      const desiredDevice =
-        (this.config.device as string | undefined) ||
-        (isBrowser ? (supportsWebGPU ? 'webgpu' : 'wasm') : 'cpu');
+      // Use BackendSelector if available, otherwise fallback to old logic
+      const desiredDevice = this.config.device as string | undefined;
+      let tryOrder: string[];
 
-      const tryOrder = (() => {
-        if (isBrowser) {
-          if (desiredDevice === 'webgpu')
-            return webgpuAdapterAvailable ? ['webgpu', 'wasm'] : ['wasm'];
-          if (desiredDevice === 'wasm') return ['wasm'];
-          // If someone passed 'cpu' or other in browser, coerce to WASM-only
-          return ['wasm'];
-        }
-        // Node.js environment: allow CPU fallback
-        return desiredDevice === 'webgpu'
-          ? ['webgpu', 'cpu']
-          : [desiredDevice, ...(desiredDevice !== 'cpu' ? ['cpu'] : [])];
-      })();
+      if (this.backendSelector) {
+        // Use BackendSelector for device fallback logic
+        const fallbackDevice =
+          desiredDevice ||
+          (isBrowser ? (supportsWebGPU ? 'webgpu' : 'wasm') : 'cpu');
+        tryOrder = this.backendSelector.getDeviceFallbackOrder(
+          fallbackDevice as Device | 'wasm'
+        );
+      } else {
+        // Fallback to old logic if BackendSelector not available
+        const fallbackDevice =
+          desiredDevice ||
+          (isBrowser ? (supportsWebGPU ? 'webgpu' : 'wasm') : 'cpu');
+        tryOrder = (() => {
+          if (isBrowser) {
+            if (fallbackDevice === 'webgpu')
+              return webgpuAdapterAvailable ? ['webgpu', 'wasm'] : ['wasm'];
+            if (fallbackDevice === 'wasm') return ['wasm'];
+            return ['wasm'];
+          }
+          return fallbackDevice === 'webgpu'
+            ? ['webgpu', 'cpu']
+            : [fallbackDevice, ...(fallbackDevice !== 'cpu' ? ['cpu'] : [])];
+        })();
+      }
 
       if (typeof console !== 'undefined' && console.log) {
         console.log('[LLMModel] load(): env', {
@@ -151,9 +165,11 @@ export class LLMModel extends BaseModel<LLMConfig> {
             console.log('[LLMModel] attempting device:', dev);
           }
 
-          // Optimize WASM backend if used
-          if (env?.backends?.onnx) {
-            // Podpowiedź backendu dla ORT (jeśli wspierane)
+          // Configure ONNX backend using BackendSelector if available
+          if (this.backendSelector && env?.backends?.onnx) {
+            this.backendSelector.configureONNXBackend(dev, env);
+          } else if (env?.backends?.onnx) {
+            // Fallback to old ONNX configuration logic
             interface ONNXBackends {
               backendHint?: string;
               wasm?: {
@@ -196,9 +212,16 @@ export class LLMModel extends BaseModel<LLMConfig> {
             }
           }
 
-          const pipelineDevice = dev === 'wasm' ? 'cpu' : (dev as 'cpu' | 'gpu' | 'webgpu');
+          const pipelineDevice = this.backendSelector
+            ? this.backendSelector.getPipelineDevice(dev)
+            : dev === 'wasm'
+              ? 'cpu'
+              : (dev as 'cpu' | 'gpu' | 'webgpu');
           const logger = getConfig().logger;
-          logger.debug('[transformers-router] load LLM try', { device: dev, dtype });
+          logger.debug('[transformers-router] load LLM try', {
+            device: dev,
+            dtype,
+          });
           this.pipeline = await pipeline('text-generation', this.config.model, {
             dtype,
             device: pipelineDevice,
@@ -213,13 +236,23 @@ export class LLMModel extends BaseModel<LLMConfig> {
           break;
         } catch (err) {
           const logger = getConfig().logger;
-          logger.debug('[transformers-router] load LLM fallback', { from: dev, error: (err as Error)?.message });
+          logger.debug('[transformers-router] load LLM fallback', {
+            from: dev,
+            error: (err as Error)?.message,
+          });
           lastError = err instanceof Error ? err : new Error(String(err));
         }
       }
 
       if (!this.loaded) {
-        throw lastError || new ModelLoadError('Unknown error during LLM model load', this.config.model, 'llm');
+        throw (
+          lastError ||
+          new ModelLoadError(
+            'Unknown error during LLM model load',
+            this.config.model,
+            'llm'
+          )
+        );
       }
     } catch (error) {
       this.loaded = false;
@@ -361,7 +394,11 @@ export class LLMModel extends BaseModel<LLMConfig> {
         finishReason: 'stop',
       };
     } catch (error) {
-      throw new InferenceError(`Chat generation failed: ${(error as Error).message}`, 'llm', error as Error);
+      throw new InferenceError(
+        `Chat generation failed: ${(error as Error).message}`,
+        'llm',
+        error as Error
+      );
     }
   }
 
@@ -408,7 +445,11 @@ export class LLMModel extends BaseModel<LLMConfig> {
       const result = await pipeline(prompt, generationOptions);
       return result[0].generated_text;
     } catch (error) {
-      throw new InferenceError(`Completion failed: ${(error as Error).message}`, 'llm', error as Error);
+      throw new InferenceError(
+        `Completion failed: ${(error as Error).message}`,
+        'llm',
+        error as Error
+      );
     }
   }
 

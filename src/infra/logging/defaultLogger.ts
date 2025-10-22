@@ -6,5 +6,3 @@ export const createDefaultLogger = (debug: boolean): Logger => ({
   warn: (...a: unknown[]) => debug && console.warn('[WARN]', ...a),
   error: (...a: unknown[]) => console.error('[ERROR]', ...a),
 });
-
-

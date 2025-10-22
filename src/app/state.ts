@@ -12,7 +12,9 @@ export function setConfig(config: RuntimeConfig): void {
 
 export function getConfig(): RuntimeConfig {
   if (!runtimeConfig) {
-    throw new InitializationError('Library not initialized. Call init() first.');
+    throw new InitializationError(
+      'Library not initialized. Call init() first.'
+    );
   }
   return runtimeConfig;
 }
@@ -42,5 +44,3 @@ export function getRegisteredModels(): Map<string, ModelConfig> {
 export function getRegisteredModel(name: string): ModelConfig | undefined {
   return registeredModels.get(name);
 }
-
-

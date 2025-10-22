@@ -27,7 +27,10 @@ export class TransformersRouter {
    * @param path - The route path
    * @param handler - The handler function for this route
    */
-  public addRoute(path: string, handler: (..._args: unknown[]) => unknown): void {
+  public addRoute(
+    path: string,
+    handler: (..._args: unknown[]) => unknown
+  ): void {
     const normalizedPath = this.normalizePath(path);
     this.routes.set(normalizedPath, { path: normalizedPath, handler });
   }

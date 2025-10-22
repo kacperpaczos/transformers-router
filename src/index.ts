@@ -5,7 +5,10 @@ export { init, dispose } from './app/init';
 export { AIProvider, createAIProvider } from './app/AIProvider';
 
 // Web Workers Support (Phase 2)
-export { AIProviderWorker, createAIProviderWorker } from './infra/workers/AIProviderWorker';
+export {
+  AIProviderWorker,
+  createAIProviderWorker,
+} from './infra/workers/AIProviderWorker';
 export { WorkerPool } from './infra/workers/WorkerPool';
 
 // Adapters
@@ -26,6 +29,10 @@ export { EmbeddingModel } from './models/EmbeddingModel';
 // Core classes
 export { ModelManager } from './app/ModelManager';
 export { ModelCache } from './app/cache/ModelCache';
+
+// Backend and AutoScaling
+export { BackendSelector } from './app/backend/BackendSelector';
+export { AutoScaler } from './app/autoscaler/AutoScaler';
 
 // Voice Profile system
 export {

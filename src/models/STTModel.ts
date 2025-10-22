@@ -2,11 +2,12 @@
  * STT Model for speech-to-text transcription (Whisper)
  */
 
-import type { STTConfig, STTOptions } from '../core/types';
+import type { STTConfig, STTOptions, Device } from '../core/types';
 import { BaseModel } from './BaseModel';
 import { audioConverter, type AudioInput } from '../utils/AudioConverter';
 import { getConfig } from '../app/state';
 import { ModelLoadError, InferenceError } from '@domain/errors';
+import type { BackendSelector } from '../app/backend/BackendSelector';
 
 // Dynamically import Transformers.js
 let transformersModule: typeof import('@huggingface/transformers') | null =
@@ -20,8 +21,11 @@ async function getTransformers() {
 }
 
 export class STTModel extends BaseModel<STTConfig> {
-  constructor(config: STTConfig) {
+  private backendSelector?: BackendSelector;
+
+  constructor(config: STTConfig, backendSelector?: BackendSelector) {
     super('stt', config);
+    this.backendSelector = backendSelector;
   }
 
   /**
@@ -83,20 +87,35 @@ export class STTModel extends BaseModel<STTConfig> {
         }
       }
 
-      const desiredDevice =
-        (this.config.device as string | undefined) ||
-        (isBrowser ? (webgpuAdapterAvailable ? 'webgpu' : 'wasm') : 'cpu');
-      const tryOrder = (() => {
-        if (isBrowser) {
-          if (desiredDevice === 'webgpu')
-            return webgpuAdapterAvailable ? ['webgpu', 'wasm'] : ['wasm'];
-          if (desiredDevice === 'wasm') return ['wasm'];
-          return ['wasm'];
-        }
-        return desiredDevice === 'webgpu'
-          ? ['webgpu', 'cpu']
-          : [desiredDevice, ...(desiredDevice !== 'cpu' ? ['cpu'] : [])];
-      })();
+      // Use BackendSelector if available, otherwise fallback to old logic
+      const desiredDevice = this.config.device as string | undefined;
+      let tryOrder: string[];
+
+      if (this.backendSelector) {
+        // Use BackendSelector for device fallback logic
+        const fallbackDevice =
+          desiredDevice ||
+          (isBrowser ? (webgpuAdapterAvailable ? 'webgpu' : 'wasm') : 'cpu');
+        tryOrder = this.backendSelector.getDeviceFallbackOrder(
+          fallbackDevice as Device | 'wasm'
+        );
+      } else {
+        // Fallback to old logic if BackendSelector not available
+        const fallbackDevice =
+          desiredDevice ||
+          (isBrowser ? (webgpuAdapterAvailable ? 'webgpu' : 'wasm') : 'cpu');
+        tryOrder = (() => {
+          if (isBrowser) {
+            if (fallbackDevice === 'webgpu')
+              return webgpuAdapterAvailable ? ['webgpu', 'wasm'] : ['wasm'];
+            if (fallbackDevice === 'wasm') return ['wasm'];
+            return ['wasm'];
+          }
+          return fallbackDevice === 'webgpu'
+            ? ['webgpu', 'cpu']
+            : [fallbackDevice, ...(fallbackDevice !== 'cpu' ? ['cpu'] : [])];
+        })();
+      }
 
       if (typeof console !== 'undefined' && console.log) {
         console.log('[STTModel] load(): env', {
@@ -119,7 +138,11 @@ export class STTModel extends BaseModel<STTConfig> {
           if (typeof console !== 'undefined' && console.log) {
             console.log('[STTModel] attempting device:', dev);
           }
-          if (env?.backends?.onnx) {
+          // Configure ONNX backend using BackendSelector if available
+          if (this.backendSelector && env?.backends?.onnx) {
+            this.backendSelector.configureONNXBackend(dev, env);
+          } else if (env?.backends?.onnx) {
+            // Fallback to old ONNX configuration logic
             const onnxBackends = env.backends.onnx as {
               backendHint?: string;
               wasm?: { simd?: boolean; numThreads?: number };
@@ -157,9 +180,16 @@ export class STTModel extends BaseModel<STTConfig> {
             }
           }
 
-          const pipelineDevice = dev === 'wasm' ? 'cpu' : (dev as 'cpu' | 'gpu' | 'webgpu');
+          const pipelineDevice = this.backendSelector
+            ? this.backendSelector.getPipelineDevice(dev)
+            : dev === 'wasm'
+              ? 'cpu'
+              : (dev as 'cpu' | 'gpu' | 'webgpu');
           const logger = getConfig().logger;
-          logger.debug('[transformers-router] load STT try', { device: dev, dtype });
+          logger.debug('[transformers-router] load STT try', {
+            device: dev,
+            dtype,
+          });
           this.pipeline = await pipeline(
             'automatic-speech-recognition',
             this.config.model,
@@ -178,13 +208,23 @@ export class STTModel extends BaseModel<STTConfig> {
           break;
         } catch (err) {
           const logger = getConfig().logger;
-          logger.debug('[transformers-router] load STT fallback', { from: dev, error: (err as Error)?.message });
+          logger.debug('[transformers-router] load STT fallback', {
+            from: dev,
+            error: (err as Error)?.message,
+          });
           lastError = err instanceof Error ? err : new Error(String(err));
         }
       }
 
       if (!this.loaded) {
-        throw lastError || new ModelLoadError('Unknown error during STT model load', this.config.model, 'stt');
+        throw (
+          lastError ||
+          new ModelLoadError(
+            'Unknown error during STT model load',
+            this.config.model,
+            'stt'
+          )
+        );
       }
     } catch (error) {
       this.loaded = false;
@@ -239,7 +279,11 @@ export class STTModel extends BaseModel<STTConfig> {
 
       return result.text;
     } catch (error) {
-      throw new InferenceError(`STT transcription failed: ${(error as Error).message}`, 'stt', error as Error);
+      throw new InferenceError(
+        `STT transcription failed: ${(error as Error).message}`,
+        'stt',
+        error as Error
+      );
     }
   }
 

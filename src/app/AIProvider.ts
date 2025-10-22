@@ -45,7 +45,10 @@ export class AIProvider {
     options: ChatOptions = {}
   ): Promise<ChatResponse> {
     if (!this.config.llm) {
-      throw new ValidationError('LLM not configured. Please provide llm config in AIProvider constructor.', 'llm');
+      throw new ValidationError(
+        'LLM not configured. Please provide llm config in AIProvider constructor.',
+        'llm'
+      );
     }
 
     const model = await this.modelManager.getOrLoadModel(
@@ -98,7 +101,10 @@ export class AIProvider {
    */
   async speak(text: string, options: TTSOptions = {}): Promise<Blob> {
     if (!this.config.tts) {
-      throw new ValidationError('TTS not configured. Please provide tts config in AIProvider constructor.', 'tts');
+      throw new ValidationError(
+        'TTS not configured. Please provide tts config in AIProvider constructor.',
+        'tts'
+      );
     }
 
     const model = await this.modelManager.getOrLoadModel(
@@ -116,7 +122,10 @@ export class AIProvider {
     options: STTOptions = {}
   ): Promise<string> {
     if (!this.config.stt) {
-      throw new ValidationError('STT not configured. Please provide stt config in AIProvider constructor.', 'stt');
+      throw new ValidationError(
+        'STT not configured. Please provide stt config in AIProvider constructor.',
+        'stt'
+      );
     }
 
     const model = await this.modelManager.getOrLoadModel(
@@ -136,7 +145,10 @@ export class AIProvider {
     options: EmbeddingOptions = {}
   ): Promise<number[][]> {
     if (!this.config.embedding) {
-      throw new ValidationError('Embedding not configured. Please provide embedding config in AIProvider constructor.', 'embedding');
+      throw new ValidationError(
+        'Embedding not configured. Please provide embedding config in AIProvider constructor.',
+        'embedding'
+      );
     }
 
     const model = await this.modelManager.getOrLoadModel(

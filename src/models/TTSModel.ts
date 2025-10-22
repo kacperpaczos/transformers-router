@@ -2,11 +2,12 @@
  * TTS Model for text-to-speech synthesis
  */
 
-import type { TTSConfig, TTSOptions } from '../core/types';
+import type { TTSConfig, TTSOptions, Device } from '../core/types';
 import { BaseModel } from './BaseModel';
 import { audioConverter } from '../utils/AudioConverter';
 import { ModelLoadError, InferenceError } from '@domain/errors';
 import { voiceProfileRegistry } from '../core/VoiceProfileRegistry';
+import type { BackendSelector } from '../app/backend/BackendSelector';
 
 // Dynamically import Transformers.js
 let transformersModule: typeof import('@huggingface/transformers') | null =
@@ -20,8 +21,11 @@ async function getTransformers() {
 }
 
 export class TTSModel extends BaseModel<TTSConfig> {
-  constructor(config: TTSConfig) {
+  private backendSelector?: BackendSelector;
+
+  constructor(config: TTSConfig, backendSelector?: BackendSelector) {
     super('tts', config);
+    this.backendSelector = backendSelector;
   }
 
   /**
@@ -83,20 +87,35 @@ export class TTSModel extends BaseModel<TTSConfig> {
         }
       }
 
-      const desiredDevice =
-        (this.config.device as string | undefined) ||
-        (isBrowser ? (webgpuAdapterAvailable ? 'webgpu' : 'wasm') : 'cpu');
-      const tryOrder = (() => {
-        if (isBrowser) {
-          if (desiredDevice === 'webgpu')
-            return webgpuAdapterAvailable ? ['webgpu', 'wasm'] : ['wasm'];
-          if (desiredDevice === 'wasm') return ['wasm'];
-          return ['wasm'];
-        }
-        return desiredDevice === 'webgpu'
-          ? ['webgpu', 'cpu']
-          : [desiredDevice, ...(desiredDevice !== 'cpu' ? ['cpu'] : [])];
-      })();
+      // Use BackendSelector if available, otherwise fallback to old logic
+      const desiredDevice = this.config.device as string | undefined;
+      let tryOrder: string[];
+
+      if (this.backendSelector) {
+        // Use BackendSelector for device fallback logic
+        const fallbackDevice =
+          desiredDevice ||
+          (isBrowser ? (webgpuAdapterAvailable ? 'webgpu' : 'wasm') : 'cpu');
+        tryOrder = this.backendSelector.getDeviceFallbackOrder(
+          fallbackDevice as Device | 'wasm'
+        );
+      } else {
+        // Fallback to old logic if BackendSelector not available
+        const fallbackDevice =
+          desiredDevice ||
+          (isBrowser ? (webgpuAdapterAvailable ? 'webgpu' : 'wasm') : 'cpu');
+        tryOrder = (() => {
+          if (isBrowser) {
+            if (fallbackDevice === 'webgpu')
+              return webgpuAdapterAvailable ? ['webgpu', 'wasm'] : ['wasm'];
+            if (fallbackDevice === 'wasm') return ['wasm'];
+            return ['wasm'];
+          }
+          return fallbackDevice === 'webgpu'
+            ? ['webgpu', 'cpu']
+            : [fallbackDevice, ...(fallbackDevice !== 'cpu' ? ['cpu'] : [])];
+        })();
+      }
 
       if (typeof console !== 'undefined' && console.log) {
         console.log('[TTSModel] load(): env', {
@@ -120,7 +139,11 @@ export class TTSModel extends BaseModel<TTSConfig> {
             console.log('[TTSModel] attempting device:', dev);
           }
 
-          if (env?.backends?.onnx) {
+          // Configure ONNX backend using BackendSelector if available
+          if (this.backendSelector && env?.backends?.onnx) {
+            this.backendSelector.configureONNXBackend(dev, env);
+          } else if (env?.backends?.onnx) {
+            // Fallback to old ONNX configuration logic
             const onnxBackends = env.backends.onnx as {
               backendHint?: string;
               wasm?: { simd?: boolean; numThreads?: number };
@@ -158,9 +181,13 @@ export class TTSModel extends BaseModel<TTSConfig> {
             }
           }
 
+          const pipelineDevice = this.backendSelector
+            ? this.backendSelector.getPipelineDevice(dev)
+            : (dev as unknown as 'webgpu' | 'wasm' | 'gpu' | 'cpu');
+
           this.pipeline = await pipeline('text-to-speech', this.config.model, {
             dtype,
-            device: dev as unknown as 'webgpu' | 'wasm' | 'gpu' | 'cpu',
+            device: pipelineDevice,
             progress_callback: progressCallback,
           });
 
@@ -313,7 +340,11 @@ export class TTSModel extends BaseModel<TTSConfig> {
         bitDepth: 16,
       });
     } catch (error) {
-      throw new InferenceError(`TTS synthesis failed: ${(error as Error).message}`, 'tts', error as Error);
+      throw new InferenceError(
+        `TTS synthesis failed: ${(error as Error).message}`,
+        'tts',
+        error as Error
+      );
     }
   }
 }
