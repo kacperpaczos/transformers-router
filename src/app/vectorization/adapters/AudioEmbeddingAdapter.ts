@@ -15,8 +15,13 @@ export class AudioEmbeddingAdapter implements EmbeddingAdapter {
 
   canHandle(file: File): boolean {
     const audioTypes = [
-      'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4',
-      'audio/aac', 'audio/flac', 'audio/webm'
+      'audio/mpeg',
+      'audio/wav',
+      'audio/ogg',
+      'audio/mp4',
+      'audio/aac',
+      'audio/flac',
+      'audio/webm',
     ];
     return audioTypes.some(type => file.type.startsWith(type));
   }
@@ -31,9 +36,13 @@ export class AudioEmbeddingAdapter implements EmbeddingAdapter {
       const { pipeline } = await import('@huggingface/transformers');
 
       // Initialize CLAP pipeline for audio embeddings
-      this.pipeline = await pipeline('feature-extraction', 'laion/clap-htsat-fused', {
-        device: this.getPreferredDevice(),
-      });
+      this.pipeline = await pipeline(
+        'feature-extraction',
+        'laion/clap-htsat-fused',
+        {
+          device: this.getPreferredDevice(),
+        }
+      );
 
       this.initialized = true;
     } catch (error) {
@@ -51,11 +60,7 @@ export class AudioEmbeddingAdapter implements EmbeddingAdapter {
       const audioBuffer = await this.fileToAudioBuffer(file);
 
       // Process through CLAP pipeline
-      const output = await this.pipeline(audioBuffer, {
-        return_tensors: 'pt',
-        padding: true,
-        truncation: true,
-      });
+      const output = await this.pipeline(audioBuffer);
 
       // Extract embedding (assuming the model returns pooled embeddings)
       const vector = this.extractEmbedding(output);
@@ -76,7 +81,7 @@ export class AudioEmbeddingAdapter implements EmbeddingAdapter {
     }
   }
 
-  async processText(text: string): Promise<Float32Array> {
+  async processText(_text: string): Promise<Float32Array> {
     await this.ensureInitialized();
 
     // For audio adapter, we might want to use text-to-audio embeddings
@@ -111,7 +116,7 @@ export class AudioEmbeddingAdapter implements EmbeddingAdapter {
       const audioContext = new AudioContext();
       const reader = new FileReader();
 
-      reader.onload = async (e) => {
+      reader.onload = async e => {
         try {
           const arrayBuffer = e.target?.result as ArrayBuffer;
           const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);

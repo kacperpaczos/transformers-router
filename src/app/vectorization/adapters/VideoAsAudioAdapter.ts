@@ -20,8 +20,13 @@ export class VideoAsAudioAdapter implements EmbeddingAdapter {
 
   canHandle(file: File): boolean {
     const videoTypes = [
-      'video/mp4', 'video/avi', 'video/mov', 'video/wmv',
-      'video/flv', 'video/webm', 'video/mkv'
+      'video/mp4',
+      'video/avi',
+      'video/mov',
+      'video/wmv',
+      'video/flv',
+      'video/webm',
+      'video/mkv',
     ];
     return videoTypes.some(type => file.type.startsWith(type));
   }
@@ -77,7 +82,7 @@ export class VideoAsAudioAdapter implements EmbeddingAdapter {
 
       const ffmpeg = createFFmpeg({
         log: false,
-        progress: (p) => {
+        progress: p => {
           if (p.ratio > 0) {
             console.log(`FFmpeg progress: ${Math.round(p.ratio * 100)}%`);
           }
@@ -108,12 +113,16 @@ export class VideoAsAudioAdapter implements EmbeddingAdapter {
 
       // Extract audio using FFmpeg
       await ffmpeg.run(
-        '-i', 'input_video',           // Input file
-        '-vn',                         // No video
-        '-acodec', 'pcm_s16le',       // PCM 16-bit little-endian
-        '-ar', '16000',               // Sample rate 16kHz (good for speech)
-        '-ac', '1',                   // Mono channel
-        'output_audio.wav'            // Output file
+        '-i',
+        'input_video', // Input file
+        '-vn', // No video
+        '-acodec',
+        'pcm_s16le', // PCM 16-bit little-endian
+        '-ar',
+        '16000', // Sample rate 16kHz (good for speech)
+        '-ac',
+        '1', // Mono channel
+        'output_audio.wav' // Output file
       );
 
       // Read the extracted audio
@@ -123,7 +132,10 @@ export class VideoAsAudioAdapter implements EmbeddingAdapter {
       ffmpeg.FS('unlink', 'input_video');
       ffmpeg.FS('unlink', 'output_audio.wav');
 
-      return data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+      return data.buffer.slice(
+        data.byteOffset,
+        data.byteOffset + data.byteLength
+      );
     } catch (error) {
       throw new Error(`FFmpeg audio extraction failed: ${error}`);
     }

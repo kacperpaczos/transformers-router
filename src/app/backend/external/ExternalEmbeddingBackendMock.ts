@@ -3,7 +3,6 @@
  */
 
 import type { VectorModality } from '../../../core/types';
-import type { EmbeddingResult } from '../../vectorization/adapters/EmbeddingAdapter';
 
 export interface MockConfig {
   enabled: boolean;
@@ -58,7 +57,9 @@ export class ExternalEmbeddingBackendMock {
   /**
    * Process embedding request with simulated latency and errors
    */
-  async processEmbedding(request: EmbeddingRequest): Promise<EmbeddingResponse> {
+  async processEmbedding(
+    request: EmbeddingRequest
+  ): Promise<EmbeddingResponse> {
     if (!this.config.enabled) {
       throw new Error('Mock backend is disabled');
     }
@@ -133,7 +134,10 @@ export class ExternalEmbeddingBackendMock {
       })
       .map(embedding => ({
         id: embedding.id,
-        score: this.cosineSimilarity(queryVector, new Float32Array(embedding.vector)),
+        score: this.cosineSimilarity(
+          queryVector,
+          new Float32Array(embedding.vector)
+        ),
         metadata: {
           id: embedding.id,
           modality: embedding.modality,
@@ -234,7 +238,7 @@ export class ExternalEmbeddingBackendMock {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash);

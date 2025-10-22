@@ -15,8 +15,13 @@ export class ImageEmbeddingAdapter implements EmbeddingAdapter {
 
   canHandle(file: File): boolean {
     const imageTypes = [
-      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-      'image/bmp', 'image/tiff', 'image/svg+xml'
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/bmp',
+      'image/tiff',
+      'image/svg+xml',
     ];
     return imageTypes.some(type => file.type.startsWith(type));
   }
@@ -31,9 +36,13 @@ export class ImageEmbeddingAdapter implements EmbeddingAdapter {
       const { pipeline } = await import('@huggingface/transformers');
 
       // Initialize CLIP pipeline for image embeddings
-      this.pipeline = await pipeline('image-to-text', 'openai/clip-vit-base-patch32', {
-        device: this.getPreferredDevice(),
-      });
+      this.pipeline = await pipeline(
+        'image-to-text',
+        'openai/clip-vit-base-patch32',
+        {
+          device: this.getPreferredDevice(),
+        }
+      );
 
       this.initialized = true;
     } catch (error) {
@@ -74,17 +83,21 @@ export class ImageEmbeddingAdapter implements EmbeddingAdapter {
     }
   }
 
-  async processText(text: string): Promise<Float32Array> {
+  async processText(_text: string): Promise<Float32Array> {
     await this.ensureInitialized();
 
     // For image adapter, we can use CLIP text encoder for text-to-image similarity
     try {
       const { pipeline } = await import('@huggingface/transformers');
-      const textPipeline = await pipeline('feature-extraction', 'openai/clip-vit-base-patch32', {
-        device: this.getPreferredDevice(),
-      });
+      const textPipeline = await pipeline(
+        'feature-extraction',
+        'openai/clip-vit-base-patch32',
+        {
+          device: this.getPreferredDevice(),
+        }
+      );
 
-      const output = await textPipeline(text);
+      const output = await textPipeline(_text);
 
       return this.extractTextEmbedding(output);
     } catch (error) {
@@ -154,7 +167,7 @@ export class ImageEmbeddingAdapter implements EmbeddingAdapter {
 
       // Cleanup object URL after loading
       const originalOnload = img.onload;
-      img.onload = function(this: HTMLImageElement, ev: Event) {
+      img.onload = function (this: HTMLImageElement) {
         URL.revokeObjectURL(url);
         return originalOnload?.call(this);
       };
@@ -170,7 +183,9 @@ export class ImageEmbeddingAdapter implements EmbeddingAdapter {
     if (output && output.logits_per_image) {
       // Alternative extraction method
       const logits = output.logits_per_image;
-      return new Float32Array(logits.data.slice(0, logits.dims[logits.dims.length - 1]));
+      return new Float32Array(
+        logits.data.slice(0, logits.dims[logits.dims.length - 1])
+      );
     }
 
     throw new Error('Unable to extract image embedding from model output');
@@ -185,7 +200,9 @@ export class ImageEmbeddingAdapter implements EmbeddingAdapter {
     if (output && output.logits_per_text) {
       // Alternative extraction method
       const logits = output.logits_per_text;
-      return new Float32Array(logits.data.slice(0, logits.dims[logits.dims.length - 1]));
+      return new Float32Array(
+        logits.data.slice(0, logits.dims[logits.dims.length - 1])
+      );
     }
 
     throw new Error('Unable to extract text embedding from model output');

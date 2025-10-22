@@ -2,10 +2,7 @@
  * Local Resource Usage Estimator for tracking system resources during vectorization
  */
 
-import type {
-  ResourceUsageSnapshot,
-  VectorModality,
-} from '../../core/types';
+import type { ResourceUsageSnapshot, VectorModality } from '../../core/types';
 import type {
   ResourceUsageEstimator,
   ResourceLevel,
@@ -21,11 +18,13 @@ export class LocalResourceUsageEstimator implements ResourceUsageEstimator {
   private measurementStartTimes: Map<string, number> = new Map();
   private quotaThresholds: { warn: number; high: number; critical: number };
 
-  constructor(quotaThresholds: { warn: number; high: number; critical: number } = {
-    warn: 0.7,
-    high: 0.85,
-    critical: 0.95,
-  }) {
+  constructor(
+    quotaThresholds: { warn: number; high: number; critical: number } = {
+      warn: 0.7,
+      high: 0.85,
+      critical: 0.95,
+    }
+  ) {
     this.quotaThresholds = quotaThresholds;
   }
 
@@ -51,7 +50,10 @@ export class LocalResourceUsageEstimator implements ResourceUsageEstimator {
     };
   }
 
-  checkThresholds(usage: ResourceUsageSnapshot): { level: ResourceLevel; exceeded: string[] } {
+  checkThresholds(usage: ResourceUsageSnapshot): {
+    level: ResourceLevel;
+    exceeded: string[];
+  } {
     const exceeded: string[] = [];
     let level: ResourceLevel = 'warn';
 
@@ -73,7 +75,8 @@ export class LocalResourceUsageEstimator implements ResourceUsageEstimator {
 
     // Check memory usage
     if (usage.memoryMB) {
-      const memoryRatio = usage.memoryMB / (navigator as any).deviceMemory * 1024; // Approximate max memory
+      const memoryRatio =
+        (usage.memoryMB / (navigator as any).deviceMemory) * 1024; // Approximate max memory
 
       if (memoryRatio >= this.quotaThresholds.critical) {
         level = 'critical';
@@ -90,14 +93,14 @@ export class LocalResourceUsageEstimator implements ResourceUsageEstimator {
     return { level, exceeded };
   }
 
-  startMeasurement(operation: string): () => void {
+  startMeasurement(_operation: string): () => void {
     const startTime = performance.now();
-    this.measurementStartTimes.set(operation, startTime);
+    this.measurementStartTimes.set(_operation, startTime);
 
     return () => {
       const endTime = performance.now();
       const duration = endTime - startTime;
-      this.measurementStartTimes.delete(operation);
+      this.measurementStartTimes.delete(_operation);
 
       // Emit CPU usage event
       this.emit('resource:usage', {
@@ -150,12 +153,23 @@ export class LocalResourceUsageEstimator implements ResourceUsageEstimator {
 
     const { level, exceeded } = this.checkThresholds(usage);
     if (exceeded.length > 0) {
-      this.emit('resource:quota-warning', { level, usage } as ResourceUsageEventData);
+      this.emit('resource:quota-warning', {
+        level,
+        usage,
+      } as ResourceUsageEventData);
     }
   }
 
-  emitVectorizationError(stage: 'preprocess' | 'embed' | 'store' | 'query', error: string, metadata?: Record<string, unknown>): void {
-    this.emit('vector:error', { stage, error, metadata } as VectorizationErrorEventData);
+  emitVectorizationError(
+    stage: 'preprocess' | 'embed' | 'store' | 'query',
+    error: string,
+    metadata?: Record<string, unknown>
+  ): void {
+    this.emit('vector:error', {
+      stage,
+      error,
+      metadata,
+    } as VectorizationErrorEventData);
   }
 
   emitVectorIndexed(count: number, modality: VectorModality): void {
@@ -185,7 +199,7 @@ export class LocalResourceUsageEstimator implements ResourceUsageEstimator {
   private getCpuUsage(): number {
     // Measure CPU time since last measurement
     let totalTime = 0;
-    for (const [operation, startTime] of this.measurementStartTimes) {
+    for (const [, startTime] of this.measurementStartTimes) {
       totalTime += performance.now() - startTime;
     }
     return totalTime;
@@ -211,7 +225,10 @@ export class LocalResourceUsageEstimator implements ResourceUsageEstimator {
     return null;
   }
 
-  private async getStorageInfo(): Promise<{ usedMB: number; limitMB?: number }> {
+  private async getStorageInfo(): Promise<{
+    usedMB: number;
+    limitMB?: number;
+  }> {
     try {
       if ('storage' in navigator && 'estimate' in navigator.storage) {
         const estimate = await navigator.storage.estimate();
@@ -220,17 +237,20 @@ export class LocalResourceUsageEstimator implements ResourceUsageEstimator {
           limitMB: estimate.quota ? estimate.quota / (1024 * 1024) : undefined,
         };
       }
-    } catch (error) {
-      console.warn('Storage estimation not available:', error);
+    } catch (_error) {
+      console.warn('Storage estimation not available:', _error);
     }
 
     // Fallback: estimate based on IndexedDB size
     return await this.estimateIndexedDBSize();
   }
 
-  private async estimateIndexedDBSize(): Promise<{ usedMB: number; limitMB?: number }> {
+  private async estimateIndexedDBSize(): Promise<{
+    usedMB: number;
+    limitMB?: number;
+  }> {
     try {
-      const databases = await indexedDB.databases?.() || [];
+      const databases = (await indexedDB.databases?.()) || [];
 
       let totalSize = 0;
       for (const db of databases) {
@@ -246,7 +266,7 @@ export class LocalResourceUsageEstimator implements ResourceUsageEstimator {
         usedMB: totalSize / (1024 * 1024),
         limitMB: 100, // 100MB default limit
       };
-    } catch (error) {
+    } catch {
       return { usedMB: 0 };
     }
   }
@@ -267,7 +287,9 @@ export class LocalResourceUsageEstimator implements ResourceUsageEstimator {
     return 0;
   }
 
-  private getGpuInfo(): { backend: 'webgpu' | 'wasm'; usedMB?: number } | undefined {
+  private getGpuInfo():
+    | { backend: 'webgpu' | 'wasm'; usedMB?: number }
+    | undefined {
     // Check if WebGPU is available and being used
     if (typeof navigator !== 'undefined' && 'gpu' in navigator) {
       return {

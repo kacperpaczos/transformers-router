@@ -37,7 +37,7 @@ export class VectorizationService {
   private resourceEstimator: ResourceUsageEstimator;
   private adapters: Map<VectorModality, EmbeddingAdapter> = new Map();
   private externalMock?: ExternalEmbeddingBackendMock;
-  private eventListeners: Map<string, Set<(data: any) => void>> = new Map();
+  private eventListeners: Map<string, Set<(data: unknown) => void>> = new Map();
 
   constructor(config: VectorizationServiceConfig) {
     this.config = config;
@@ -114,7 +114,9 @@ export class VectorizationService {
           // Process file through appropriate adapter
           const adapter = this.getAdapter(fileMeta.modality);
           if (!adapter) {
-            throw new Error(`No adapter available for modality: ${fileMeta.modality}`);
+            throw new Error(
+              `No adapter available for modality: ${fileMeta.modality}`
+            );
           }
 
           // Use external mock if enabled, otherwise local adapter
@@ -139,17 +141,21 @@ export class VectorizationService {
           }
 
           // Store in vector store
-          await this.vectorStore.upsert([{
-            id: fileMeta.id,
-            vector: embeddingResult.vector,
-            metadata: fileMeta,
-          }]);
+          await this.vectorStore.upsert([
+            {
+              id: fileMeta.id,
+              vector: embeddingResult.vector,
+              metadata: fileMeta,
+            },
+          ]);
 
           result.indexed.push(file.name);
 
           // Emit events
-          this.emit('vector:indexed', { count: 1, modality: fileMeta.modality });
-
+          this.emit('vector:indexed', {
+            count: 1,
+            modality: fileMeta.modality,
+          });
         } catch (error) {
           result.failed.push(file.name);
           this.emit('vector:error', {
@@ -163,7 +169,6 @@ export class VectorizationService {
       // Get usage snapshot and emit
       const usage = await this.resourceEstimator.getUsageSnapshot();
       this.resourceEstimator.emitResourceUsage(usage);
-
     } finally {
       endMeasurement();
     }
@@ -195,13 +200,17 @@ export class VectorizationService {
 
         const adapter = this.getAdapter(queryModality);
         if (!adapter) {
-          throw new Error(`No adapter available for modality: ${queryModality}`);
+          throw new Error(
+            `No adapter available for modality: ${queryModality}`
+          );
         }
 
         if (adapter.processText) {
           queryVector = await adapter.processText(input);
         } else {
-          throw new Error(`Text processing not supported for modality: ${queryModality}`);
+          throw new Error(
+            `Text processing not supported for modality: ${queryModality}`
+          );
         }
       } else {
         // File query
@@ -210,7 +219,9 @@ export class VectorizationService {
 
         const adapter = this.getAdapter(queryModality);
         if (!adapter) {
-          throw new Error(`No adapter available for modality: ${queryModality}`);
+          throw new Error(
+            `No adapter available for modality: ${queryModality}`
+          );
         }
 
         const embeddingResult = await adapter.process(input);
@@ -221,7 +232,10 @@ export class VectorizationService {
       const results = await this.vectorStore.query(queryVector, options);
 
       // Emit events
-      this.emit('vector:queried', { k: options.k || 10, modality: queryModality });
+      this.emit('vector:queried', {
+        k: options.k || 10,
+        modality: queryModality,
+      });
 
       // Get usage snapshot
       const usage = await this.resourceEstimator.getUsageSnapshot();
@@ -232,7 +246,6 @@ export class VectorizationService {
         scores: results.map(r => r.score),
         metadata: results.map(r => r.metadata),
       };
-
     } catch (error) {
       this.emit('vector:error', {
         stage: 'query',
@@ -259,7 +272,6 @@ export class VectorizationService {
       // Get usage snapshot
       const usage = await this.resourceEstimator.getUsageSnapshot();
       this.resourceEstimator.emitResourceUsage(usage);
-
     } catch (error) {
       this.emit('vector:error', {
         stage: 'store',
@@ -367,27 +379,27 @@ export class VectorizationService {
 
   private setupEventForwarding(): void {
     // Forward resource estimator events
-    this.resourceEstimator.on('resource:usage', (data) => {
+    this.resourceEstimator.on('resource:usage', data => {
       this.emit('resource:usage', data);
     });
 
-    this.resourceEstimator.on('resource:quota-warning', (data) => {
+    this.resourceEstimator.on('resource:quota-warning', data => {
       this.emit('resource:quota-warning', data);
     });
 
-    this.resourceEstimator.on('vector:error', (data) => {
+    this.resourceEstimator.on('vector:error', data => {
       this.emit('vector:error', data);
     });
 
-    this.resourceEstimator.on('vector:indexed', (data) => {
+    this.resourceEstimator.on('vector:indexed', data => {
       this.emit('vector:indexed', data);
     });
 
-    this.resourceEstimator.on('vector:queried', (data) => {
+    this.resourceEstimator.on('vector:queried', data => {
       this.emit('vector:queried', data);
     });
 
-    this.resourceEstimator.on('vector:deleted', (data) => {
+    this.resourceEstimator.on('vector:deleted', data => {
       this.emit('vector:deleted', data);
     });
   }
