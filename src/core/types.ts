@@ -17,7 +17,7 @@ export type {
 export type Modality = 'llm' | 'tts' | 'stt' | 'embedding';
 
 // Vectorization modalities (for multimedia embeddings)
-export type VectorModality = 'audio' | 'image' | 'video'; // video→audio
+export type VectorModality = 'text' | 'audio' | 'image' | 'video'; // video→audio
 
 // Device types
 export type Device = 'cpu' | 'gpu' | 'webgpu';
@@ -296,7 +296,7 @@ export interface VectorizeOptions {
   maxFileSizeMB?: number;
   concurrency?: number;
   batchSize?: number;
-  onProgress?: (event: ProgressEventData) => void;
+  onProgress?: (event: VectorizationProgressEventData) => void;
   signal?: AbortSignal;
 }
 
@@ -305,7 +305,7 @@ export interface QueryVectorizeOptions {
   filter?: Partial<VectorDocMeta>;
   modality?: VectorModality;
   scoreThreshold?: number;
-  onProgress?: (event: ProgressEventData) => void;
+  onProgress?: (event: VectorizationProgressEventData) => void;
 }
 
 export interface VectorDocMeta {
@@ -341,7 +341,8 @@ export type VectorizationStage =
   | 'chunking'
   | 'embedding'
   | 'upserting'
-  | 'finalizing';
+  | 'finalizing'
+  | 'cancelled';
 
 export type JobStatus =
   | 'queued'
