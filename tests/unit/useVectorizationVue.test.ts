@@ -5,6 +5,7 @@
 import { ref, nextTick } from 'vue';
 import { useVectorization } from '../../src/ui/vue/useVectorization';
 import type { VectorizationServiceConfig, VectorizeOptions } from '../../src/core/types';
+import { loadTestFile } from '../fixtures/loadTestFile';
 
 // Mock AIProvider and VectorizationService
 jest.mock('../../src/app/AIProvider', () => ({
@@ -13,14 +14,14 @@ jest.mock('../../src/app/AIProvider', () => ({
     vectorizeWithProgress: jest.fn(),
     queryWithProgress: jest.fn(),
     dispose: jest.fn().mockResolvedValue(undefined),
-    onVectorizationEvent: jest.fn(() => () => {}),
+    onVectorizationEvent: jest.fn(),
   })),
   createAIProvider: jest.fn().mockImplementation(() => ({
     initializeVectorization: jest.fn().mockResolvedValue(undefined),
     vectorizeWithProgress: jest.fn(),
     queryWithProgress: jest.fn(),
     dispose: jest.fn().mockResolvedValue(undefined),
-    onVectorizationEvent: jest.fn(() => () => {}),
+    onVectorizationEvent: jest.fn(),
   })),
 }));
 
@@ -45,7 +46,15 @@ describe('useVectorization (Vue)', () => {
     });
 
     it('should auto-initialize when autoInitialize is true', async () => {
-      const composable = useVectorization({ autoInitialize: true, config: mockConfig });
+      const mockProvider = {
+        initializeVectorization: jest.fn().mockResolvedValue(undefined),
+        vectorizeWithProgress: jest.fn(),
+        queryWithProgress: jest.fn(),
+        dispose: jest.fn().mockResolvedValue(undefined),
+        onVectorizationEvent: jest.fn(),
+      } as any;
+
+      const composable = useVectorization({ autoInitialize: true, config: mockConfig, providerFactory: () => mockProvider });
 
       // Should start initializing
       expect(composable.isInitializing.value).toBe(true);
@@ -62,14 +71,10 @@ describe('useVectorization (Vue)', () => {
       const mockProvider = {
         initializeVectorization: jest.fn().mockRejectedValue(new Error('Init failed')),
         dispose: jest.fn(),
-        onVectorizationEvent: jest.fn(() => () => {}),
-      };
+        onVectorizationEvent: jest.fn(),
+      } as any;
 
-      jest.doMock('../../src/app/AIProvider', () => ({
-        createAIProvider: jest.fn().mockReturnValue(mockProvider),
-      }));
-
-      const composable = useVectorization({ autoInitialize: true, config: mockConfig });
+      const composable = useVectorization({ autoInitialize: true, config: mockConfig, providerFactory: () => mockProvider });
 
       await nextTick();
       await new Promise(resolve => setTimeout(resolve, 0));
@@ -91,7 +96,15 @@ describe('useVectorization (Vue)', () => {
     });
 
     it('should not re-initialize if already initialized', async () => {
-      const composable = useVectorization({ config: mockConfig });
+      const mockProvider = {
+        initializeVectorization: jest.fn().mockResolvedValue(undefined),
+        vectorizeWithProgress: jest.fn(),
+        queryWithProgress: jest.fn(),
+        dispose: jest.fn().mockResolvedValue(undefined),
+        onVectorizationEvent: jest.fn(),
+      } as any;
+
+      const composable = useVectorization({ config: mockConfig, providerFactory: () => mockProvider });
 
       await composable.initialize();
       const firstProvider = composable.provider.value;
@@ -99,6 +112,7 @@ describe('useVectorization (Vue)', () => {
       await composable.initialize();
 
       expect(composable.provider.value).toBe(firstProvider);
+      expect(mockProvider.initializeVectorization).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -111,20 +125,16 @@ describe('useVectorization (Vue)', () => {
         vectorizeWithProgress: jest.fn(),
         queryWithProgress: jest.fn(),
         dispose: jest.fn().mockResolvedValue(undefined),
-        onVectorizationEvent: jest.fn(() => () => {}),
-      };
-
-      jest.doMock('../../src/app/AIProvider', () => ({
-        createAIProvider: jest.fn().mockReturnValue(mockProvider),
-      }));
+        onVectorizationEvent: jest.fn(),
+      } as any;
     });
 
     it('should call vectorizeWithProgress when vectorize is called', async () => {
-      const composable = useVectorization({ autoInitialize: true, config: mockConfig });
+      const composable = useVectorization({ autoInitialize: true, config: mockConfig, providerFactory: () => mockProvider });
 
       await composable.initialize();
 
-      const mockFile = new File(['content'], 'test.pdf', { type: 'application/pdf' });
+      const mockFile = await loadTestFile('text/test.pdf');
       const options: VectorizeOptions = { modality: 'text' };
 
       const generator = composable.vectorize(mockFile, options);
@@ -134,7 +144,7 @@ describe('useVectorization (Vue)', () => {
     });
 
     it('should call queryWithProgress when query is called', async () => {
-      const composable = useVectorization({ autoInitialize: true, config: mockConfig });
+      const composable = useVectorization({ autoInitialize: true, config: mockConfig, providerFactory: () => mockProvider });
 
       await composable.initialize();
 
@@ -149,7 +159,7 @@ describe('useVectorization (Vue)', () => {
     it('should throw error if not initialized', async () => {
       const composable = useVectorization();
 
-      const mockFile = new File(['content'], 'test.pdf', { type: 'application/pdf' });
+      const mockFile = await loadTestFile('text/test.pdf');
 
       await expect(
         async () => {
@@ -169,16 +179,12 @@ describe('useVectorization (Vue)', () => {
         vectorizeWithProgress: jest.fn(),
         queryWithProgress: jest.fn(),
         dispose: jest.fn().mockResolvedValue(undefined),
-        onVectorizationEvent: jest.fn(() => () => {}),
-      };
-
-      jest.doMock('../../src/app/AIProvider', () => ({
-        createAIProvider: jest.fn().mockReturnValue(mockProvider),
-      }));
+        onVectorizationEvent: jest.fn(),
+      } as any;
     });
 
     it('should update reactive state when progress events are received', async () => {
-      const composable = useVectorization({ autoInitialize: true, config: mockConfig });
+      const composable = useVectorization({ autoInitialize: true, config: mockConfig, providerFactory: () => mockProvider });
 
       await composable.initialize();
 
@@ -198,7 +204,7 @@ describe('useVectorization (Vue)', () => {
 
       // Trigger event handler
       const eventHandler = mockProvider.onVectorizationEvent.mock.calls.find(
-        call => call[0] === 'vectorization:progress'
+        (call: any[]) => call[0] === 'vectorization:progress'
       )?.[1];
 
       if (eventHandler) {
@@ -215,7 +221,7 @@ describe('useVectorization (Vue)', () => {
     });
 
     it('should update error state when error events are received', async () => {
-      const composable = useVectorization({ autoInitialize: true, config: mockConfig });
+      const composable = useVectorization({ autoInitialize: true, config: mockConfig, providerFactory: () => mockProvider });
 
       await composable.initialize();
 
@@ -235,7 +241,7 @@ describe('useVectorization (Vue)', () => {
       };
 
       const eventHandler = mockProvider.onVectorizationEvent.mock.calls.find(
-        call => call[0] === 'vectorization:error'
+        (call: any[]) => call[0] === 'vectorization:error'
       )?.[1];
 
       if (eventHandler) {
@@ -259,16 +265,12 @@ describe('useVectorization (Vue)', () => {
         vectorizeWithProgress: jest.fn(),
         queryWithProgress: jest.fn(),
         dispose: jest.fn().mockResolvedValue(undefined),
-        onVectorizationEvent: jest.fn(() => () => {}),
-      };
-
-      jest.doMock('../../src/app/AIProvider', () => ({
-        createAIProvider: jest.fn().mockReturnValue(mockProvider),
-      }));
+        onVectorizationEvent: jest.fn(),
+      } as any;
     });
 
     it('should setup event listeners correctly', async () => {
-      const composable = useVectorization({ autoInitialize: true, config: mockConfig });
+      const composable = useVectorization({ autoInitialize: true, config: mockConfig, providerFactory: () => mockProvider });
 
       await composable.initialize();
 
@@ -295,29 +297,46 @@ describe('useVectorization (Vue)', () => {
     });
 
     it('should allow manual event listener registration', async () => {
-      const composable = useVectorization({ autoInitialize: true, config: mockConfig });
+      const mockProvider = {
+        initializeVectorization: jest.fn().mockResolvedValue(undefined),
+        vectorizeWithProgress: jest.fn(),
+        queryWithProgress: jest.fn(),
+        dispose: jest.fn().mockResolvedValue(undefined),
+        onVectorizationEvent: jest.fn((event: string, handler: Function) => {
+          // Return unsubscribe function
+          return () => {};
+        }),
+      } as any;
+
+      const composable = useVectorization({ autoInitialize: true, config: mockConfig, providerFactory: () => mockProvider });
 
       await composable.initialize();
+      await nextTick();
+
+      // Verify event listeners were set up
+      expect(mockProvider.onVectorizationEvent).toHaveBeenCalled();
 
       const mockHandler = jest.fn();
       const unsubscribe = composable.onProgress(mockHandler);
 
-      // Simulate event
-      const eventHandler = mockProvider.onVectorizationEvent.mock.calls.find(
-        call => call[0] === 'vectorization:progress'
-      )?.[1];
+      // Simulate event by calling the registered handler
+      const progressCall = mockProvider.onVectorizationEvent.mock.calls.find(
+        (call: any[]) => call[0] === 'vectorization:progress'
+      );
 
-      if (eventHandler) {
-        eventHandler({ jobId: 'test', progress: 0.5 });
+      if (progressCall && progressCall[1]) {
+        progressCall[1]({ jobId: 'test', progress: 0.5 });
       }
+
+      await nextTick();
 
       expect(mockHandler).toHaveBeenCalledWith({ jobId: 'test', progress: 0.5 });
 
       unsubscribe();
 
       // Should not be called after unsubscribe
-      if (eventHandler) {
-        eventHandler({ jobId: 'test2', progress: 0.8 });
+      if (progressCall && progressCall[1]) {
+        progressCall[1]({ jobId: 'test2', progress: 0.8 });
       }
 
       expect(mockHandler).toHaveBeenCalledTimes(1);
@@ -329,14 +348,10 @@ describe('useVectorization (Vue)', () => {
       const mockProvider = {
         initializeVectorization: jest.fn().mockResolvedValue(undefined),
         dispose: jest.fn().mockResolvedValue(undefined),
-        onVectorizationEvent: jest.fn(() => () => {}),
-      };
+        onVectorizationEvent: jest.fn(),
+      } as any;
 
-      jest.doMock('../../src/app/AIProvider', () => ({
-        createAIProvider: jest.fn().mockReturnValue(mockProvider),
-      }));
-
-      const composable = useVectorization({ autoInitialize: true, config: mockConfig });
+      const composable = useVectorization({ autoInitialize: true, config: mockConfig, providerFactory: () => mockProvider });
 
       await composable.initialize();
 
@@ -354,14 +369,10 @@ describe('useVectorization (Vue)', () => {
       const mockProvider = {
         initializeVectorization: jest.fn().mockResolvedValue(undefined),
         dispose: jest.fn().mockResolvedValue(undefined),
-        onVectorizationEvent: jest.fn(() => () => {}),
-      };
+        onVectorizationEvent: jest.fn(),
+      } as any;
 
-      jest.doMock('../../src/app/AIProvider', () => ({
-        createAIProvider: jest.fn().mockReturnValue(mockProvider),
-      }));
-
-      const composable = useVectorization({ autoInitialize: true, config: mockConfig });
+      const composable = useVectorization({ autoInitialize: true, config: mockConfig, providerFactory: () => mockProvider });
 
       await composable.initialize();
 
@@ -390,8 +401,20 @@ describe('useVectorization (Vue)', () => {
   });
 
   describe('Event Stream Management', () => {
+    let mockProvider: any;
+
+    beforeEach(() => {
+      mockProvider = {
+        initializeVectorization: jest.fn().mockResolvedValue(undefined),
+        vectorizeWithProgress: jest.fn(),
+        queryWithProgress: jest.fn(),
+        dispose: jest.fn().mockResolvedValue(undefined),
+        onVectorizationEvent: jest.fn(),
+      } as any;
+    });
+
     it('should maintain event history reactively', async () => {
-      const composable = useVectorization({ autoInitialize: true, config: mockConfig });
+      const composable = useVectorization({ autoInitialize: true, config: mockConfig, providerFactory: () => mockProvider });
 
       await composable.initialize();
 
@@ -404,7 +427,7 @@ describe('useVectorization (Vue)', () => {
 
       events.forEach(event => {
         const eventHandler = mockProvider.onVectorizationEvent.mock.calls.find(
-          call => call[0] === 'vectorization:progress'
+          (call: any[]) => call[0] === 'vectorization:progress'
         )?.[1];
         if (eventHandler) eventHandler(event);
       });
@@ -417,14 +440,14 @@ describe('useVectorization (Vue)', () => {
     });
 
     it('should limit event history to prevent memory leaks', async () => {
-      const composable = useVectorization({ autoInitialize: true, config: mockConfig });
+      const composable = useVectorization({ autoInitialize: true, config: mockConfig, providerFactory: () => mockProvider });
 
       await composable.initialize();
 
       // Simulate many events
       for (let i = 0; i < 150; i++) {
         const eventHandler = mockProvider.onVectorizationEvent.mock.calls.find(
-          call => call[0] === 'vectorization:progress'
+          (call: any[]) => call[0] === 'vectorization:progress'
         )?.[1];
         if (eventHandler) eventHandler({ jobId: 'job_1', stage: 'embedding', progress: i / 100 });
       }
@@ -436,14 +459,26 @@ describe('useVectorization (Vue)', () => {
   });
 
   describe('Reactive Updates', () => {
+    let mockProvider: any;
+
+    beforeEach(() => {
+      mockProvider = {
+        initializeVectorization: jest.fn().mockResolvedValue(undefined),
+        vectorizeWithProgress: jest.fn(),
+        queryWithProgress: jest.fn(),
+        dispose: jest.fn().mockResolvedValue(undefined),
+        onVectorizationEvent: jest.fn(),
+      } as any;
+    });
+
     it('should update reactive refs when progress changes', async () => {
-      const composable = useVectorization({ autoInitialize: true, config: mockConfig });
+      const composable = useVectorization({ autoInitialize: true, config: mockConfig, providerFactory: () => mockProvider });
 
       await composable.initialize();
 
       // Simulate progress event
       const eventHandler = mockProvider.onVectorizationEvent.mock.calls.find(
-        call => call[0] === 'vectorization:progress'
+        (call: any[]) => call[0] === 'vectorization:progress'
       )?.[1];
 
       if (eventHandler) {
@@ -471,13 +506,13 @@ describe('useVectorization (Vue)', () => {
     });
 
     it('should update reactive refs when stage changes', async () => {
-      const composable = useVectorization({ autoInitialize: true, config: mockConfig });
+      const composable = useVectorization({ autoInitialize: true, config: mockConfig, providerFactory: () => mockProvider });
 
       await composable.initialize();
 
       // Simulate stage start
       const startHandler = mockProvider.onVectorizationEvent.mock.calls.find(
-        call => call[0] === 'vectorization:stage:start'
+        (call: any[]) => call[0] === 'vectorization:stage:start'
       )?.[1];
 
       if (startHandler) {
