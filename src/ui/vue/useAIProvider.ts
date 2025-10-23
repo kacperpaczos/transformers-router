@@ -4,7 +4,11 @@
 
 import { ref, shallowRef, markRaw, onUnmounted, type Ref } from 'vue';
 import { AIProvider, createAIProvider } from '../../app/AIProvider';
-import type { AIProviderConfig, ProgressInfo, ModelStatus } from '../../core/types';
+import type {
+  AIProviderConfig,
+  ProgressInfo,
+  ModelStatus,
+} from '../../core/types';
 
 export interface UseAIProviderOptions extends AIProviderConfig {
   autoLoad?: boolean;
