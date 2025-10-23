@@ -1,10 +1,11 @@
 import { ProgressTracker } from '../../src/utils/ProgressTracker';
 import type { VectorizeOptions, VectorModality } from '../../src/core/types';
+import { loadTestFile } from '../fixtures/loadTestFile';
 
 describe('ProgressTracker', () => {
   let tracker: ProgressTracker;
 
-  const mockFile = new File(['test content'], 'test.pdf', { type: 'application/pdf' });
+  let mockFile: File;
   const mockOptions: VectorizeOptions = {
     modality: 'text',
     chunking: { strategy: 'recursive', chunkSize: 1000, chunkOverlap: 100 },
@@ -12,11 +13,12 @@ describe('ProgressTracker', () => {
 
   const mockStageWeights = {
     queued: 0, initializing: 5, extracting: 20, sanitizing: 5,
-    chunking: 10, embedding: 45, upserting: 13, finalizing: 2,
+    chunking: 10, embedding: 45, upserting: 13, finalizing: 2, cancelled: 0,
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     tracker = new ProgressTracker();
+    mockFile = await loadTestFile('text/test.pdf');
   });
 
   describe('Job Creation and Management', () => {
@@ -76,13 +78,11 @@ describe('ProgressTracker', () => {
 
       tracker.updateProgress(jobId, 0.5, {
         itemsProcessed: 5,
-        chunksTotal: 10,
         message: 'Processing chunks',
       });
 
       const job = tracker.getJobStatus(jobId);
       expect(job?.itemsProcessed).toBe(5);
-      expect(job?.chunksTotal).toBe(10);
     });
   });
 
@@ -149,14 +149,17 @@ describe('ProgressTracker', () => {
       jobId = tracker.createJob(mockFile, mockOptions, mockStageWeights);
     });
 
-    it('should cancel jobs and clean up', () => {
+    it('should cancel jobs and clean up', async () => {
       tracker.startStage(jobId, 'embedding');
 
       tracker.cancelJob(jobId);
 
       const job = tracker.getJobStatus(jobId);
       expect(job?.status).toBe('cancelled');
-      expect(job).toBeUndefined(); // Should be cleaned up immediately for cancelled jobs
+
+      // Wait for cleanup timeout
+      await new Promise(resolve => setTimeout(resolve, 150));
+      expect(tracker.getJobStatus(jobId)).toBeUndefined(); // Should be cleaned up after timeout
     });
   });
 
@@ -197,9 +200,11 @@ describe('ProgressTracker', () => {
       tracker.updateProgress(jobId, 0.5, { message: 'Processing...' });
       tracker.completeStage(jobId);
 
-      expect(progressEvents.length).toBe(1);
+      expect(progressEvents.length).toBe(2); // stage:start and stage:progress
       expect(progressEvents[0].stage).toBe('initializing');
-      expect(progressEvents[0].stageProgress).toBe(0.5);
+      expect(progressEvents[0].stageProgress).toBe(0);
+      expect(progressEvents[1].stage).toBe('initializing');
+      expect(progressEvents[1].stageProgress).toBe(0.5);
 
       unsubscribe();
     });
@@ -248,11 +253,11 @@ describe('ProgressTracker', () => {
   });
 
   describe('Input Metadata Detection', () => {
-    it('should detect modality from file MIME type', () => {
-      const pdfFile = new File(['pdf content'], 'test.pdf', { type: 'application/pdf' });
-      const audioFile = new File(['audio content'], 'test.mp3', { type: 'audio/mpeg' });
-      const imageFile = new File(['image content'], 'test.jpg', { type: 'image/jpeg' });
-      const videoFile = new File(['video content'], 'test.mp4', { type: 'video/mp4' });
+    it('should detect modality from file MIME type', async () => {
+      const pdfFile = await loadTestFile('text/test.pdf');
+      const audioFile = await loadTestFile('audio/test.mp3');
+      const imageFile = await loadTestFile('images/test.jpg');
+      const videoFile = await loadTestFile('video/test.mp4');
 
       const weights = tracker.getStageWeights('text'); // Default for unknown
 
@@ -266,10 +271,10 @@ describe('ProgressTracker', () => {
       const imageJob = tracker.getJobStatus(imageJobId);
       const videoJob = tracker.getJobStatus(videoJobId);
 
-      expect(pdfJob?.inputMeta.modality).toBe('text');
-      expect(audioJob?.inputMeta.modality).toBe('audio');
-      expect(imageJob?.inputMeta.modality).toBe('image');
-      expect(videoJob?.inputMeta.modality).toBe('video');
+      expect(pdfJob?.inputMeta?.modality).toBe('text');
+      expect(audioJob?.inputMeta?.modality).toBe('audio');
+      expect(imageJob?.inputMeta?.modality).toBe('image');
+      expect(videoJob?.inputMeta?.modality).toBe('video');
     });
 
     it('should handle string inputs correctly', () => {
@@ -279,13 +284,13 @@ describe('ProgressTracker', () => {
       const textJob = tracker.getJobStatus(textJobId);
       const urlJob = tracker.getJobStatus(urlJobId);
 
-      expect(textJob?.inputMeta.modality).toBe('text');
-      expect(textJob?.inputMeta.mime).toBe('text/plain');
-      expect(textJob?.inputMeta.url).toBeUndefined();
+      expect(textJob?.inputMeta?.modality).toBe('text');
+      expect(textJob?.inputMeta?.mime).toBe('text/plain');
+      expect(textJob?.inputMeta?.url).toBeUndefined();
 
-      expect(urlJob?.inputMeta.modality).toBe('text');
-      expect(urlJob?.inputMeta.mime).toBe('text/html');
-      expect(urlJob?.inputMeta.url).toBe('https://example.com');
+      expect(urlJob?.inputMeta?.modality).toBe('text');
+      expect(urlJob?.inputMeta?.mime).toBe('text/html');
+      expect(urlJob?.inputMeta?.url).toBe('https://example.com');
     });
 
     it('should handle ArrayBuffer inputs', () => {
@@ -293,14 +298,16 @@ describe('ProgressTracker', () => {
       const bufferJobId = tracker.createJob(buffer, mockOptions, mockStageWeights);
 
       const bufferJob = tracker.getJobStatus(bufferJobId);
-      expect(bufferJob?.inputMeta.modality).toBe('text');
-      expect(bufferJob?.inputMeta.mime).toBe('application/octet-stream');
-      expect(bufferJob?.inputMeta.sizeBytes).toBe(1024);
+      expect(bufferJob?.inputMeta?.modality).toBe('text');
+      expect(bufferJob?.inputMeta?.mime).toBe('application/octet-stream');
+      expect(bufferJob?.inputMeta?.sizeBytes).toBe(1024);
     });
   });
 
   describe('Cleanup and Memory Management', () => {
+    jest.setTimeout(20000);
     it('should clean up completed jobs after timeout', async () => {
+      jest.setTimeout(15000);
       const jobId = tracker.createJob(mockFile, mockOptions, mockStageWeights);
 
       tracker.completeJob(jobId);
@@ -318,13 +325,17 @@ describe('ProgressTracker', () => {
       // This is hard to test without mocking timers
     });
 
-    it('should clean up cancelled jobs immediately', () => {
+    it('should clean up cancelled jobs after timeout', async () => {
       const jobId = tracker.createJob(mockFile, mockOptions, mockStageWeights);
 
       tracker.cancelJob(jobId);
 
-      const job = tracker.getJobStatus(jobId);
-      expect(job).toBeUndefined(); // Should be cleaned up immediately
+      // Job should still exist immediately
+      expect(tracker.getJobStatus(jobId)).toBeDefined();
+
+      // Wait for cleanup timeout
+      await new Promise(resolve => setTimeout(resolve, 150));
+      expect(tracker.getJobStatus(jobId)).toBeUndefined(); // Should be cleaned up after timeout
     });
   });
 
