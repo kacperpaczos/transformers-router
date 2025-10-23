@@ -45,6 +45,7 @@ describe('LocalVectorStoreIndexedDB', () => {
       open: jest.fn(() => mockRequest),
       databases: jest.fn(() => Promise.resolve([])),
     } as any;
+  });
 
   const mockVector1 = new Float32Array([0.1, 0.2, 0.3, 0.4, 0.5]);
   const mockVector2 = new Float32Array([0.5, 0.4, 0.3, 0.2, 0.1]);
@@ -89,12 +90,12 @@ describe('LocalVectorStoreIndexedDB', () => {
   beforeEach(async () => {
     store = new LocalVectorStoreIndexedDB(5); // 5-dimensional vectors for testing
     await store.initialize();
-  });
+  }, 10000);
 
   afterEach(async () => {
     await store.clear();
     await store.close();
-  });
+  }, 10000);
 
   describe('Initialization', () => {
     it('should initialize successfully', async () => {

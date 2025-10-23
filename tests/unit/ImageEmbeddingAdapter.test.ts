@@ -257,21 +257,31 @@ describe('ImageEmbeddingAdapter', () => {
       // Reset mock calls
       jest.clearAllMocks();
       mockCanvas = createMockCanvas();
+      
+      // Mock document.createElement to return our mock canvas
+      const mockCreateElement = jest.fn((tagName: string) => {
+        if (tagName === 'canvas') {
+          return mockCanvas;
+        }
+        return {};
+      });
+      
+      // Save original document
+      const originalDocument = global.document;
       global.document = {
-        createElement: jest.fn((tagName: string) => {
-          if (tagName === 'canvas') {
-            return mockCanvas;
-          }
-          return {};
-        }),
+        createElement: mockCreateElement,
       } as any;
 
       await adapter.process(imageFile);
 
-      // Verify canvas was used and dimensions were set
+      // Verify canvas was created and used
+      expect(mockCreateElement).toHaveBeenCalledWith('canvas');
       expect(mockCanvas.getContext).toHaveBeenCalledWith('2d');
       expect(mockCanvas.width).toBe(224);
       expect(mockCanvas.height).toBe(224);
+      
+      // Restore original document
+      global.document = originalDocument;
     });
 
     it('should handle canvas context errors', async () => {
@@ -287,6 +297,10 @@ describe('ImageEmbeddingAdapter', () => {
         getContext: jest.fn(() => null),
         toDataURL: jest.fn(),
       };
+
+      // Mock Image to use our mock
+      const mockImage = createMockImage();
+      global.Image = jest.fn(() => mockImage) as any;
 
       // Replace global document.createElement to return bad canvas
       const originalDocument = global.document;
@@ -307,8 +321,9 @@ describe('ImageEmbeddingAdapter', () => {
       
       await newAdapter.dispose();
 
-      // Restore original document
+      // Restore original document and Image
       global.document = originalDocument;
+      global.Image = CanvasImage as any;
       
       // Recreate adapter for other tests
       adapter = new ImageEmbeddingAdapter();

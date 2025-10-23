@@ -77,13 +77,13 @@ describe('useVectorization (React)', () => {
 
       // Wait for initialization to complete
       await act(async () => {
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise(resolve => setTimeout(resolve, 50));
       });
 
       expect(result.current.error).toBeDefined();
       expect(result.current.error?.message).toBe('Init failed');
       expect(result.current.isInitialized).toBe(false);
-    }, 15000);
+    }, 5000);
   });
 
   describe('Manual Initialization', () => {
@@ -306,14 +306,23 @@ describe('useVectorization (React)', () => {
     });
 
     it('should allow manual event listener registration', async () => {
+      let progressHandler: Function | null = null;
+      
       const mockProvider = {
         initializeVectorization: jest.fn().mockResolvedValue(undefined),
         vectorizeWithProgress: jest.fn(),
         queryWithProgress: jest.fn(),
         dispose: jest.fn().mockResolvedValue(undefined),
         onVectorizationEvent: jest.fn((event: string, handler: Function) => {
+          if (event === 'vectorization:progress') {
+            progressHandler = handler;
+          }
           // Return unsubscribe function
-          return () => {};
+          return () => {
+            if (event === 'vectorization:progress') {
+              progressHandler = null;
+            }
+          };
         }),
       } as any;
 
@@ -331,11 +340,8 @@ describe('useVectorization (React)', () => {
 
       // Simulate event by calling the registered handler
       await act(async () => {
-        const progressCall = mockProvider.onVectorizationEvent.mock.calls.find(
-          (call: any[]) => call[0] === 'vectorization:progress'
-        );
-        if (progressCall && progressCall[1]) {
-          progressCall[1]({ jobId: 'test', progress: 0.5 });
+        if (progressHandler) {
+          progressHandler({ jobId: 'test', progress: 0.5 });
         }
       });
 
@@ -345,11 +351,8 @@ describe('useVectorization (React)', () => {
 
       // Should not be called after unsubscribe
       await act(async () => {
-        const progressCall = mockProvider.onVectorizationEvent.mock.calls.find(
-          (call: any[]) => call[0] === 'vectorization:progress'
-        );
-        if (progressCall && progressCall[1]) {
-          progressCall[1]({ jobId: 'test2', progress: 0.8 });
+        if (progressHandler) {
+          progressHandler({ jobId: 'test2', progress: 0.8 });
         }
       });
 
@@ -400,6 +403,7 @@ describe('useVectorization (React)', () => {
 
       await act(async () => {
         await result.current.dispose();
+        await new Promise(resolve => setTimeout(resolve, 50));
       });
 
       expect(mockProvider.dispose).toHaveBeenCalled();

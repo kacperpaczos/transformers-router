@@ -47,16 +47,18 @@ export interface UseVectorizationReturn {
   vectorize: (
     input: File | string | ArrayBuffer,
     options?: VectorizeOptions
-  ) => AsyncGenerator<ProgressEventData, any>;
+  ) => AsyncGenerator<VectorizationProgressEventData, any>;
   query: (
     input: string | File | ArrayBuffer,
     options?: QueryVectorizeOptions
-  ) => AsyncGenerator<ProgressEventData, any>;
+  ) => AsyncGenerator<VectorizationProgressEventData, any>;
   cancelJob: (jobId: string) => void;
   dispose: () => Promise<void>;
 
   // Event listeners
-  onProgress: (handler: (event: ProgressEventData) => void) => () => void;
+  onProgress: (
+    handler: (event: VectorizationProgressEventData) => void
+  ) => () => void;
   onWarning: (handler: (event: ProgressEventData) => void) => () => void;
   onError: (handler: (event: ProgressEventData) => void) => () => void;
   onComplete: (handler: (event: ProgressEventData) => void) => () => void;
@@ -240,7 +242,9 @@ export function useVectorization(
   };
 
   // Event listener management
-  const onProgress = (handler: (event: ProgressEventData) => void) => {
+  const onProgress = (
+    handler: (event: VectorizationProgressEventData) => void
+  ) => {
     if (!provider.value) return () => {};
 
     const unsubscribe = provider.value.onVectorizationEvent(
