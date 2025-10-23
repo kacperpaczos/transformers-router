@@ -241,9 +241,11 @@ describe('LocalVectorStoreIndexedDB', () => {
   });
 
   describe('Cosine Similarity', () => {
-    it('should calculate cosine similarity correctly', async () => {
+    beforeEach(async () => {
       await store.upsert([mockDocument1, mockDocument2]);
+    });
 
+    it('should calculate cosine similarity correctly', async () => {
       // Test identical vectors (should have similarity ~1)
       const identicalQuery = new Float32Array([0.1, 0.2, 0.3, 0.4, 0.5]);
       const results = await store.query(identicalQuery, { k: 1 });
