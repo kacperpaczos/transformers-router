@@ -1,5 +1,6 @@
 import { ExternalEmbeddingBackendMock } from '../../src/app/backend/external/ExternalEmbeddingBackendMock';
 import type { EmbeddingRequest, QueryRequest } from '../../src/app/backend/external/ExternalEmbeddingBackendMock';
+import { loadTestFile } from '../fixtures/loadTestFile';
 
 describe('ExternalEmbeddingBackendMock', () => {
   let mock: ExternalEmbeddingBackendMock;
@@ -11,15 +12,16 @@ describe('ExternalEmbeddingBackendMock', () => {
     baseEmbeddingSize: 5,
   };
 
-  const mockRequest: EmbeddingRequest = {
-    id: 'test-doc',
-    data: new File(['test content'], 'test.txt', { type: 'text/plain' }),
-    modality: 'audio',
-    metadata: { custom: 'data' },
-  };
+  let mockRequest: EmbeddingRequest;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mock = new ExternalEmbeddingBackendMock(mockConfig);
+    mockRequest = {
+      id: 'test-doc',
+      data: await loadTestFile('text/test.txt'),
+      modality: 'audio',
+      metadata: { custom: 'data' },
+    };
   });
 
   afterEach(() => {

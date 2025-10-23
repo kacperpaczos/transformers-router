@@ -1,4 +1,46 @@
 import { AudioEmbeddingAdapter } from '../../src/app/vectorization/adapters/AudioEmbeddingAdapter';
+import { loadTestFile } from '../fixtures/loadTestFile';
+
+// Mock @huggingface/transformers
+jest.mock('@huggingface/transformers', () => ({
+  pipeline: jest.fn().mockResolvedValue(
+    jest.fn().mockResolvedValue({
+      // Mock CLAP pipeline output
+      pooled_output: {
+        data: new Float32Array([0.1, 0.2, 0.3, 0.4, 0.5]),
+      },
+    })
+  ),
+}));
+
+// Mock Web Audio API
+const mockAudioBuffer = {
+  getChannelData: jest.fn().mockReturnValue(new Float32Array([0.1, 0.2, 0.3, 0.4, 0.5])),
+  numberOfChannels: 1,
+  sampleRate: 16000,
+  length: 5,
+  duration: 0.0003125,
+};
+
+global.AudioContext = jest.fn().mockImplementation(() => ({
+  decodeAudioData: jest.fn().mockImplementation((arrayBuffer: ArrayBuffer) => {
+    // Check if this looks like a valid audio file by checking the first few bytes
+    const view = new Uint8Array(arrayBuffer);
+    const isValidAudio = view.length > 44 && (
+      // Check for RIFF (WAV) header
+      (view[0] === 0x52 && view[1] === 0x49 && view[2] === 0x46 && view[3] === 0x46) ||
+      // Check for MP3 frame sync
+      (view[0] === 0xFF && (view[1] & 0xE0) === 0xE0)
+    );
+
+    if (!isValidAudio) {
+      return Promise.reject(new Error('Not a valid audio file'));
+    }
+
+    return Promise.resolve(mockAudioBuffer);
+  }),
+  close: jest.fn(),
+}));
 
 describe('AudioEmbeddingAdapter', () => {
   let adapter: AudioEmbeddingAdapter;
@@ -17,25 +59,21 @@ describe('AudioEmbeddingAdapter', () => {
       expect(modalities).toContain('audio');
     });
 
-    it('should handle audio files', () => {
-      const audioFile = new File(['audio content'], 'test.mp3', {
-        type: 'audio/mpeg',
-      });
+    it('should handle audio files', async () => {
+      const audioFile = await loadTestFile('audio/test.mp3');
       expect(adapter.canHandle(audioFile)).toBe(true);
     });
 
-    it('should handle various audio formats', () => {
-      const formats = ['audio/wav', 'audio/ogg', 'audio/mp4', 'audio/aac', 'audio/flac'];
-      formats.forEach(format => {
-        const file = new File(['content'], `test.${format.split('/')[1]}`, { type: format });
+    it('should handle various audio formats', async () => {
+      const formats = ['test.wav', 'test.ogg', 'test.mp4', 'test.aac', 'test.flac'];
+      for (const filename of formats) {
+        const file = await loadTestFile(`audio/${filename}`);
         expect(adapter.canHandle(file)).toBe(true);
-      });
+      }
     });
 
-    it('should reject non-audio files', () => {
-      const imageFile = new File(['image content'], 'test.jpg', {
-        type: 'image/jpeg',
-      });
+    it('should reject non-audio files', async () => {
+      const imageFile = await loadTestFile('images/test.jpg');
       expect(adapter.canHandle(imageFile)).toBe(false);
     });
   });
@@ -63,47 +101,7 @@ describe('AudioEmbeddingAdapter', () => {
     });
 
     it('should process audio file successfully', async () => {
-      // Create a mock audio file (WAV format for simplicity)
-      const sampleRate = 16000;
-      const duration = 1; // 1 second
-      const samples = sampleRate * duration;
-      const audioData = new Float32Array(samples);
-
-      // Generate simple sine wave
-      for (let i = 0; i < samples; i++) {
-        audioData[i] = Math.sin(2 * Math.PI * 440 * i / sampleRate);
-      }
-
-      // Create WAV file (simplified)
-      const wavHeader = new ArrayBuffer(44);
-      const view = new DataView(wavHeader);
-      // Simplified WAV header creation
-      view.setUint32(0, 0x52494646, false); // "RIFF"
-      view.setUint32(4, samples * 2 + 36, true); // File size
-      view.setUint32(8, 0x57415645, false); // "WAVE"
-      view.setUint32(12, 0x666d7420, false); // "fmt "
-      view.setUint32(16, 16, true); // Format chunk size
-      view.setUint16(20, 1, true); // PCM format
-      view.setUint16(22, 1, true); // Mono
-      view.setUint32(24, sampleRate, true);
-      view.setUint32(28, sampleRate * 2, true); // Byte rate
-      view.setUint16(32, 2, true); // Block align
-      view.setUint16(34, 16, true); // Bits per sample
-      view.setUint32(36, 0x64617461, false); // "data"
-      view.setUint32(40, samples * 2, true); // Data size
-
-      const audioBuffer = new ArrayBuffer(wavHeader.byteLength + audioData.byteLength * 2);
-      const audioView = new Uint8Array(audioBuffer);
-      audioView.set(new Uint8Array(wavHeader), 0);
-
-      // Convert Float32 to Int16
-      const dataView = new DataView(audioBuffer, wavHeader.byteLength);
-      for (let i = 0; i < samples; i++) {
-        const sample = Math.max(-1, Math.min(1, audioData[i]));
-        dataView.setInt16(i * 2, sample * 32767, true);
-      }
-
-      const audioFile = new File([audioBuffer], 'test.wav', { type: 'audio/wav' });
+      const audioFile = await loadTestFile('audio/test.wav');
 
       const result = await adapter.process(audioFile);
 
