@@ -5,7 +5,7 @@
 import type {
   VectorizationStage,
   JobStatus,
-  ProgressEventData,
+  VectorizationProgressEventData,
   VectorModality,
   VectorizeOptions,
   QueryVectorizeOptions,
@@ -29,6 +29,12 @@ export interface JobMetadata {
     indexedIds: string[];
     failedItems: string[];
   };
+  inputMeta?: {
+    modality: import('../core/types').VectorModality;
+    mime: string;
+    sizeBytes: number;
+    url?: string;
+  };
 }
 
 export interface StageProgress {
@@ -42,8 +48,10 @@ export interface StageProgress {
 
 export class ProgressTracker {
   private jobs: Map<string, JobMetadata> = new Map();
-  private eventListeners: Map<string, Set<(data: ProgressEventData) => void>> =
-    new Map();
+  private eventListeners: Map<
+    string,
+    Set<(data: VectorizationProgressEventData) => void>
+  > = new Map();
   private nextJobId = 0;
 
   /**
@@ -74,6 +82,7 @@ export class ProgressTracker {
         indexedIds: [],
         failedItems: [],
       },
+      inputMeta: this.getInputMeta(input),
     };
 
     this.jobs.set(jobId, job);
@@ -104,7 +113,7 @@ export class ProgressTracker {
 
     const stageIndex = this.getStageIndex(stage, job.stageWeights);
 
-    this.emit('stage:start', {
+    const startPayload = {
       jobId,
       inputMeta: this.getInputMeta(job.input),
       stage,
@@ -112,6 +121,14 @@ export class ProgressTracker {
       totalStages: job.totalStages,
       stageProgress: 0,
       progress: this.calculateGlobalProgress(job),
+    } as const;
+    this.emit('stage:start', startPayload);
+
+    // Also emit an initial progress snapshot so listeners get immediate update
+    this.emit('stage:progress', {
+      ...startPayload,
+      itemsProcessed: job.itemsProcessed,
+      bytesProcessed: job.bytesProcessed,
     });
   }
 
@@ -277,7 +294,7 @@ export class ProgressTracker {
     this.emit('job:complete', {
       jobId,
       inputMeta: this.getInputMeta(job.input),
-      stage: 'completed',
+      stage: 'finalizing',
       stageIndex,
       totalStages: job.totalStages,
       stageProgress: 1,
@@ -313,7 +330,10 @@ export class ProgressTracker {
       partialResult: { ...job.partialResult },
     });
 
-    this.jobs.delete(jobId);
+    // Keep job in map for a brief moment to allow status checks, then clean up
+    setTimeout(() => {
+      this.jobs.delete(jobId);
+    }, 100);
   }
 
   /**
@@ -326,9 +346,9 @@ export class ProgressTracker {
   /**
    * Register progress event listener
    */
-  on<T extends keyof ProgressEventData>(
-    event: T,
-    handler: (data: ProgressEventData) => void
+  on(
+    event: string,
+    handler: (data: VectorizationProgressEventData) => void
   ): () => void {
     if (!this.eventListeners.has(event)) {
       this.eventListeners.set(event, new Set());
@@ -365,6 +385,7 @@ export class ProgressTracker {
         embedding: 45,
         upserting: 13,
         finalizing: 2,
+        cancelled: 0,
       },
       audio: {
         queued: 0,
@@ -375,6 +396,7 @@ export class ProgressTracker {
         embedding: 50,
         upserting: 13,
         finalizing: 2,
+        cancelled: 0,
       },
       image: {
         queued: 0,
@@ -385,6 +407,7 @@ export class ProgressTracker {
         embedding: 45,
         upserting: 13,
         finalizing: 2,
+        cancelled: 0,
       },
       video: {
         queued: 0,
@@ -395,6 +418,7 @@ export class ProgressTracker {
         embedding: 46,
         upserting: 12,
         finalizing: 2,
+        cancelled: 0,
       },
     };
 
@@ -482,7 +506,7 @@ export class ProgressTracker {
     return 'text';
   }
 
-  private emit(event: keyof ProgressEventData, data: ProgressEventData): void {
+  private emit(event: string, data: VectorizationProgressEventData): void {
     const listeners = this.eventListeners.get(event);
     if (listeners) {
       listeners.forEach(handler => {
