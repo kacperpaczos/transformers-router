@@ -3,17 +3,20 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { AIProvider } from '../../app/AIProvider';
+import type { AIProvider } from '../../app/AIProvider';
+import { createAIProvider } from '../../app/AIProvider';
 import type {
   VectorizeOptions,
   QueryVectorizeOptions,
   ProgressEventData,
+  VectorizationProgressEventData,
   VectorizationServiceConfig,
 } from '../../core/types';
 
 export interface UseVectorizationOptions {
   config?: VectorizationServiceConfig;
   autoInitialize?: boolean;
+  providerFactory?: () => any;
 }
 
 export interface UseVectorizationReturn {
@@ -30,26 +33,34 @@ export interface UseVectorizationReturn {
   isProcessing: boolean;
 
   // Event stream
-  events: ProgressEventData[];
+  events: VectorizationProgressEventData[];
 
   // Actions
   initialize: () => Promise<void>;
   vectorize: (
     input: File | string | ArrayBuffer,
     options?: VectorizeOptions
-  ) => AsyncGenerator<ProgressEventData, any>;
+  ) => AsyncGenerator<VectorizationProgressEventData, any>;
   query: (
     input: string | File | ArrayBuffer,
     options?: QueryVectorizeOptions
-  ) => AsyncGenerator<ProgressEventData, any>;
+  ) => AsyncGenerator<VectorizationProgressEventData, any>;
   cancelJob: (jobId: string) => void;
   dispose: () => Promise<void>;
 
   // Event listeners
-  onProgress: (handler: (event: ProgressEventData) => void) => () => void;
-  onWarning: (handler: (event: ProgressEventData) => void) => () => void;
-  onError: (handler: (event: ProgressEventData) => void) => () => void;
-  onComplete: (handler: (event: ProgressEventData) => void) => () => void;
+  onProgress: (
+    handler: (event: VectorizationProgressEventData) => void
+  ) => () => void;
+  onWarning: (
+    handler: (event: VectorizationProgressEventData) => void
+  ) => () => void;
+  onError: (
+    handler: (event: VectorizationProgressEventData) => void
+  ) => () => void;
+  onComplete: (
+    handler: (event: VectorizationProgressEventData) => void
+  ) => () => void;
 }
 
 export function useVectorization(
@@ -66,7 +77,7 @@ export function useVectorization(
   const [currentStage, setCurrentStage] = useState<string | null>(null);
   const [currentMessage, setCurrentMessage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [events, setEvents] = useState<ProgressEventData[]>([]);
+  const [events, setEvents] = useState<VectorizationProgressEventData[]>([]);
 
   const providerRef = useRef<AIProvider | null>(null);
   const eventListenersRef = useRef<Map<string, (() => void) | null>>(new Map());
@@ -74,24 +85,27 @@ export function useVectorization(
 
   // Initialize vectorization service
   const initialize = useCallback(async () => {
-    if (isInitialized || isInitializing) return;
-
     setIsInitializing(true);
     setError(null);
 
     try {
-      const newProvider = new AIProvider();
+      let newProvider: AIProvider;
+      if (options.providerFactory) {
+        newProvider = options.providerFactory();
+      } else {
+        newProvider = createAIProvider();
+      }
+
+      providerRef.current = newProvider;
+      setProvider(newProvider);
 
       if (config) {
         await newProvider.initializeVectorization(config);
       }
 
-      providerRef.current = newProvider;
-      setProvider(newProvider);
-      setIsInitialized(true);
-
-      // Setup event listeners
+      // Setup event listeners after initialization
       setupEventListeners(newProvider);
+      setIsInitialized(true);
     } catch (err) {
       setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
@@ -103,7 +117,7 @@ export function useVectorization(
     // Progress events
     prov.onVectorizationEvent(
       'vectorization:progress',
-      (event: ProgressEventData) => {
+      (event: VectorizationProgressEventData) => {
         setEvents(prev => [...prev.slice(-99), event]); // Keep last 100 events
         setCurrentJob(event.jobId);
         setCurrentProgress(event.progress);
@@ -115,7 +129,7 @@ export function useVectorization(
 
     prov.onVectorizationEvent(
       'vectorization:stage:start',
-      (event: ProgressEventData) => {
+      (event: VectorizationProgressEventData) => {
         setCurrentStage(event.stage);
         setCurrentMessage(`Starting ${event.stage}...`);
       }
@@ -123,21 +137,21 @@ export function useVectorization(
 
     prov.onVectorizationEvent(
       'vectorization:stage:end',
-      (event: ProgressEventData) => {
+      (event: VectorizationProgressEventData) => {
         setCurrentMessage(`Completed ${event.stage}`);
       }
     );
 
     prov.onVectorizationEvent(
       'vectorization:warning',
-      (event: ProgressEventData) => {
+      (event: VectorizationProgressEventData) => {
         setCurrentMessage(`Warning: ${event.warnings?.join(', ')}`);
       }
     );
 
     prov.onVectorizationEvent(
       'vectorization:error',
-      (event: ProgressEventData) => {
+      (event: VectorizationProgressEventData) => {
         setError(new Error(event.error?.message || 'Vectorization error'));
         setIsProcessing(false);
       }
@@ -152,7 +166,7 @@ export function useVectorization(
   }, [autoInitialize, isInitialized, isInitializing, initialize]);
 
   // Vectorize with progress
-  const vectorize = useCallback(async function* (
+  const vectorize = useCallback(function (
     input: File | string | ArrayBuffer,
     options: VectorizeOptions = {}
   ) {
@@ -160,22 +174,28 @@ export function useVectorization(
       throw new Error('Vectorization service not initialized');
     }
 
-    const generator = providerRef.current.vectorizeWithProgress(input, options);
+    const underlying = providerRef.current.vectorizeWithProgress(
+      input,
+      options
+    );
 
-    for await (const event of generator) {
-      yield event;
-
-      // Update UI state
-      setEvents(prev => [...prev.slice(-99), event]);
-      setCurrentJob(event.jobId);
-      setCurrentProgress(event.progress);
-      setCurrentStage(event.stage);
-      setCurrentMessage(event.message || null);
+    async function* wrapper() {
+      for await (const event of underlying) {
+        // Update UI state
+        setEvents(prev => [...prev.slice(-99), event]);
+        setCurrentJob(event.jobId);
+        setCurrentProgress(event.progress);
+        setCurrentStage(event.stage);
+        setCurrentMessage(event.message || null);
+        yield event;
+      }
     }
+
+    return wrapper();
   }, []);
 
   // Query with progress
-  const query = useCallback(async function* (
+  const query = useCallback(function (
     input: string | File | ArrayBuffer,
     options: QueryVectorizeOptions = {}
   ) {
@@ -183,18 +203,21 @@ export function useVectorization(
       throw new Error('Vectorization service not initialized');
     }
 
-    const generator = providerRef.current.queryWithProgress(input, options);
+    const underlying = providerRef.current.queryWithProgress(input, options);
 
-    for await (const event of generator) {
-      yield event;
-
-      // Update UI state
-      setEvents(prev => [...prev.slice(-99), event]);
-      setCurrentJob(event.jobId);
-      setCurrentProgress(event.progress);
-      setCurrentStage(event.stage);
-      setCurrentMessage(event.message || null);
+    async function* wrapper() {
+      for await (const event of underlying) {
+        // Update UI state
+        setEvents(prev => [...prev.slice(-99), event]);
+        setCurrentJob(event.jobId);
+        setCurrentProgress(event.progress);
+        setCurrentStage(event.stage);
+        setCurrentMessage(event.message || null);
+        yield event;
+      }
     }
+
+    return wrapper();
   }, []);
 
   // Cancel job
@@ -212,20 +235,20 @@ export function useVectorization(
     if (providerRef.current) {
       await providerRef.current.dispose();
       providerRef.current = null;
-      setProvider(null);
-      setIsInitialized(false);
-      setIsProcessing(false);
-      setCurrentJob(null);
-      setCurrentProgress(0);
-      setCurrentStage(null);
-      setCurrentMessage(null);
-      setEvents([]);
     }
+    setProvider(null);
+    setIsInitialized(false);
+    setIsProcessing(false);
+    setCurrentJob(null);
+    setCurrentProgress(0);
+    setCurrentStage(null);
+    setCurrentMessage(null);
+    setEvents([]);
   }, []);
 
   // Event listener management
   const onProgress = useCallback(
-    (handler: (event: ProgressEventData) => void) => {
+    (handler: (event: VectorizationProgressEventData) => void) => {
       if (!providerRef.current) return () => {};
 
       const unsubscribe = providerRef.current.onVectorizationEvent(
@@ -238,7 +261,7 @@ export function useVectorization(
   );
 
   const onWarning = useCallback(
-    (handler: (event: ProgressEventData) => void) => {
+    (handler: (event: VectorizationProgressEventData) => void) => {
       if (!providerRef.current) return () => {};
 
       const unsubscribe = providerRef.current.onVectorizationEvent(
@@ -250,18 +273,21 @@ export function useVectorization(
     []
   );
 
-  const onError = useCallback((handler: (event: ProgressEventData) => void) => {
-    if (!providerRef.current) return () => {};
+  const onError = useCallback(
+    (handler: (event: VectorizationProgressEventData) => void) => {
+      if (!providerRef.current) return () => {};
 
-    const unsubscribe = providerRef.current.onVectorizationEvent(
-      'vectorization:error',
-      handler
-    );
-    return unsubscribe;
-  }, []);
+      const unsubscribe = providerRef.current.onVectorizationEvent(
+        'vectorization:error',
+        handler
+      );
+      return unsubscribe;
+    },
+    []
+  );
 
   const onComplete = useCallback(
-    (handler: (event: ProgressEventData) => void) => {
+    (handler: (event: VectorizationProgressEventData) => void) => {
       if (!providerRef.current) return () => {};
 
       const unsubscribe = providerRef.current.onVectorizationEvent(

@@ -2,18 +2,27 @@
  * Vue Composable for Vectorization with progress tracking
  */
 
-import { ref, shallowRef, onUnmounted, type Ref } from 'vue';
-import { AIProvider } from '../../app/AIProvider';
+import {
+  ref,
+  shallowRef,
+  onUnmounted,
+  getCurrentInstance,
+  type Ref,
+} from 'vue';
+import type { AIProvider } from '../../app/AIProvider';
+import { createAIProvider } from '../../app/AIProvider';
 import type {
   VectorizeOptions,
   QueryVectorizeOptions,
   ProgressEventData,
+  VectorizationProgressEventData,
   VectorizationServiceConfig,
 } from '../../core/types';
 
 export interface UseVectorizationOptions {
   config?: VectorizationServiceConfig;
   autoInitialize?: boolean;
+  providerFactory?: () => any;
 }
 
 export interface UseVectorizationReturn {
@@ -31,7 +40,7 @@ export interface UseVectorizationReturn {
   isProcessing: Ref<boolean>;
 
   // Event stream
-  events: Ref<ProgressEventData[]>;
+  events: Ref<VectorizationProgressEventData[]>;
 
   // Actions
   initialize: () => Promise<void>;
@@ -70,29 +79,34 @@ export function useVectorization(
   const currentStage = ref<string | null>(null);
   const currentMessage = ref<string | null>(null);
   const isProcessing = ref(false);
-  const events = ref<ProgressEventData[]>([]);
+  const events = ref<VectorizationProgressEventData[]>([]);
 
   const { config, autoInitialize = false } = options;
 
   // Initialize vectorization service
   const initialize = async () => {
-    if (isInitialized.value || isInitializing.value) return;
+    if (isInitialized.value) return;
 
     isInitializing.value = true;
     error.value = null;
 
     try {
-      const newProvider = new AIProvider();
+      let newProvider: AIProvider;
+      if (options.providerFactory) {
+        newProvider = options.providerFactory();
+      } else {
+        newProvider = createAIProvider();
+      }
+
+      provider.value = newProvider;
 
       if (config) {
         await newProvider.initializeVectorization(config);
       }
 
-      provider.value = newProvider;
-      isInitialized.value = true;
-
-      // Setup event listeners
+      // Setup event listeners after initialization
       setupEventListeners(newProvider);
+      isInitialized.value = true;
     } catch (err) {
       error.value = err instanceof Error ? err : new Error(String(err));
     } finally {
@@ -104,7 +118,7 @@ export function useVectorization(
     // Progress events
     prov.onVectorizationEvent(
       'vectorization:progress',
-      (event: ProgressEventData) => {
+      (event: VectorizationProgressEventData) => {
         events.value = [...events.value.slice(-99), event]; // Keep last 100 events
         currentJob.value = event.jobId;
         currentProgress.value = event.progress;
@@ -116,7 +130,7 @@ export function useVectorization(
 
     prov.onVectorizationEvent(
       'vectorization:stage:start',
-      (event: ProgressEventData) => {
+      (event: VectorizationProgressEventData) => {
         currentStage.value = event.stage;
         currentMessage.value = `Starting ${event.stage}...`;
       }
@@ -124,21 +138,21 @@ export function useVectorization(
 
     prov.onVectorizationEvent(
       'vectorization:stage:end',
-      (event: ProgressEventData) => {
+      (event: VectorizationProgressEventData) => {
         currentMessage.value = `Completed ${event.stage}`;
       }
     );
 
     prov.onVectorizationEvent(
       'vectorization:warning',
-      (event: ProgressEventData) => {
+      (event: VectorizationProgressEventData) => {
         currentMessage.value = `Warning: ${event.warnings?.join(', ')}`;
       }
     );
 
     prov.onVectorizationEvent(
       'vectorization:error',
-      (event: ProgressEventData) => {
+      (event: VectorizationProgressEventData) => {
         error.value = new Error(event.error?.message || 'Vectorization error');
         isProcessing.value = false;
       }
@@ -151,7 +165,7 @@ export function useVectorization(
   }
 
   // Vectorize with progress
-  const vectorize = async function* (
+  const vectorize = function (
     input: File | string | ArrayBuffer,
     options: VectorizeOptions = {}
   ) {
@@ -159,22 +173,24 @@ export function useVectorization(
       throw new Error('Vectorization service not initialized');
     }
 
-    const generator = provider.value.vectorizeWithProgress(input, options);
+    const underlying = provider.value.vectorizeWithProgress(input, options);
 
-    for await (const event of generator) {
-      yield event;
-
-      // Update reactive state
-      events.value = [...events.value.slice(-99), event];
-      currentJob.value = event.jobId;
-      currentProgress.value = event.progress;
-      currentStage.value = event.stage;
-      currentMessage.value = event.message || null;
+    async function* wrapper() {
+      for await (const event of underlying) {
+        events.value = [...events.value.slice(-99), event];
+        currentJob.value = event.jobId;
+        currentProgress.value = event.progress;
+        currentStage.value = event.stage;
+        currentMessage.value = event.message || null;
+        yield event;
+      }
     }
+
+    return wrapper();
   };
 
   // Query with progress
-  const query = async function* (
+  const query = function (
     input: string | File | ArrayBuffer,
     options: QueryVectorizeOptions = {}
   ) {
@@ -182,18 +198,20 @@ export function useVectorization(
       throw new Error('Vectorization service not initialized');
     }
 
-    const generator = provider.value.queryWithProgress(input, options);
+    const underlying = provider.value.queryWithProgress(input, options);
 
-    for await (const event of generator) {
-      yield event;
-
-      // Update reactive state
-      events.value = [...events.value.slice(-99), event];
-      currentJob.value = event.jobId;
-      currentProgress.value = event.progress;
-      currentStage.value = event.stage;
-      currentMessage.value = event.message || null;
+    async function* wrapper() {
+      for await (const event of underlying) {
+        events.value = [...events.value.slice(-99), event];
+        currentJob.value = event.jobId;
+        currentProgress.value = event.progress;
+        currentStage.value = event.stage;
+        currentMessage.value = event.message || null;
+        yield event;
+      }
     }
+
+    return wrapper();
   };
 
   // Cancel job
@@ -262,12 +280,14 @@ export function useVectorization(
     return unsubscribe;
   };
 
-  // Cleanup on unmount
-  onUnmounted(() => {
-    if (provider.value) {
-      provider.value.dispose();
-    }
-  });
+  // Cleanup on unmount (guard for tests calling composable outside component)
+  if (getCurrentInstance()) {
+    onUnmounted(() => {
+      if (provider.value) {
+        provider.value.dispose();
+      }
+    });
+  }
 
   return {
     // Service state
