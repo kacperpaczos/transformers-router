@@ -30,7 +30,7 @@ import type {
   QueryOptions,
   VectorizeOptions,
   QueryVectorizeOptions,
-  ProgressEventData,
+  VectorizationProgressEventData,
 } from '../core/types';
 
 export class AIProvider {
@@ -412,7 +412,7 @@ export class AIProvider {
     input: File | string | ArrayBuffer,
     options: VectorizeOptions = {}
   ): AsyncGenerator<
-    ProgressEventData,
+    VectorizationProgressEventData,
     { indexed: string[]; failed: string[] }
   > {
     if (!this.vectorizationService) {
@@ -429,7 +429,10 @@ export class AIProvider {
   async *queryWithProgress(
     input: string | File | ArrayBuffer,
     options: QueryVectorizeOptions = {}
-  ): AsyncGenerator<ProgressEventData, { ids: string[]; scores: number[] }> {
+  ): AsyncGenerator<
+    VectorizationProgressEventData,
+    { ids: string[]; scores: number[] }
+  > {
     if (!this.vectorizationService) {
       throw new ValidationError(
         'Vectorization service not initialized. Call initializeVectorization first.'

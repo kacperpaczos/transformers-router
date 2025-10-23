@@ -11,6 +11,7 @@ import type {
   VectorizeOptions,
   QueryVectorizeOptions,
   ProgressEventData,
+  VectorizationProgressEventData,
   ChunkingOptions,
 } from '../../core/types';
 import { LocalVectorStoreIndexedDB } from '../../infra/vectorstore/LocalVectorStoreIndexedDB';
@@ -96,7 +97,7 @@ export class VectorizationService {
   async *vectorizeWithProgress(
     input: File | string | ArrayBuffer,
     options: VectorizeOptions = {}
-  ): AsyncGenerator<ProgressEventData, VectorizationResult> {
+  ): AsyncGenerator<VectorizationProgressEventData, VectorizationResult> {
     await this.ensureInitialized();
 
     const modality = options.modality || this.detectModalityFromInput(input);
@@ -232,7 +233,7 @@ export class VectorizationService {
   async *queryWithProgress(
     input: string | File | ArrayBuffer,
     options: QueryVectorizeOptions = {}
-  ): AsyncGenerator<ProgressEventData, QueryResult> {
+  ): AsyncGenerator<VectorizationProgressEventData, QueryResult> {
     await this.ensureInitialized();
 
     const modality = options.modality || this.detectModalityFromInput(input);
@@ -612,22 +613,35 @@ export class VectorizationService {
   // Helper methods for progress tracking
   private getProgressEvent(
     jobId: string,
-    stage: string,
-    stageProgress: number
+    _stage: string,
+    _stageProgress: number
   ): ProgressEventData {
     const job = this.progressTracker.getJobStatus(jobId);
     if (!job) {
       throw new Error(`Job ${jobId} not found`);
     }
 
+    const inputMeta = this.progressTracker.getInputMeta(job.input);
+    const globalProgress = this.progressTracker.calculateGlobalProgress(job);
+
     return {
-      jobId,
-      inputMeta: this.progressTracker.getInputMeta(job.input),
-      stage: stage as any,
-      stageIndex: Object.keys(job.stageWeights).indexOf(stage),
-      totalStages: job.totalStages,
-      stageProgress,
-      progress: this.progressTracker.calculateGlobalProgress(job),
+      modality: 'embedding',
+      model: inputMeta.mime,
+      file:
+        job.input instanceof File
+          ? job.input.name
+          : typeof job.input === 'string'
+            ? job.input
+            : 'buffer',
+      progress: globalProgress,
+      loaded: Math.floor(globalProgress * 100),
+      total: 100,
+      status:
+        job.status === 'completed'
+          ? 'ready'
+          : job.status === 'error'
+            ? 'error'
+            : 'loading',
     };
   }
 
@@ -738,7 +752,7 @@ export class VectorizationService {
     embeddings: Float32Array[],
     _modality: VectorModality,
     input: File | string | ArrayBuffer,
-    _metadata: any,
+    _metadata: Record<string, unknown>,
     jobId: string
   ): Promise<VectorizationResult> {
     const result: VectorizationResult = { indexed: [], failed: [] };
