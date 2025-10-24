@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vectorization Indexing</title>
+  <link rel="stylesheet" href="/tests/integration-browser/__assets__/common.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "@huggingface/transformers": "/node_modules/@huggingface/transformers/dist/transformers.min.js",
+        "onnxruntime-web": "/node_modules/onnxruntime-web/dist/ort.min.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="header-nav" style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+    <button class="btn" onclick="window.location.href='/tests/integration-browser/__assets__/index.html'">← Back to Menu</button>
+    <h2 style="margin:0;">Vectorization - File Indexing</h2>
+  </div>
+
+  <div class="status-row">
+    <div data-testid="status">idle</div>
+    <div data-testid="files-count">0</div>
+    <div data-testid="progress">0</div>
+  </div>
+  <div class="progressbar">
+    <div class="progressbar__fill"></div>
+  </div>
+
+  <div class="panel">
+    <div class="form-group">
+      <label for="file-input">Select files to index:</label>
+      <input type="file" id="file-input" multiple accept="audio/*,image/*,video/*">
+      <button id="index-btn" class="btn">Index Files</button>
+    </div>
+
+    <div class="form-group">
+      <label>Configuration:</label>
+      <select id="storage-select">
+        <option value="indexeddb">IndexedDB</option>
+        <option value="opfs">OPFS</option>
+      </select>
+      <select id="mock-select">
+        <option value="false">Local Processing</option>
+        <option value="true">External Mock</option>
+      </select>
+    </div>
+
+    <div class="results" id="results">
+      <h3>Indexing Results:</h3>
+      <div data-testid="indexed-files">-</div>
+      <div data-testid="failed-files">-</div>
+      <div data-testid="total-time">-</div>
+    </div>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

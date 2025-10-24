@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vectorization Queries</title>
+  <link rel="stylesheet" href="/tests/integration-browser/__assets__/common.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "@huggingface/transformers": "/node_modules/@huggingface/transformers/dist/transformers.min.js",
+        "onnxruntime-web": "/node_modules/onnxruntime-web/dist/ort.min.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="header-nav" style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+    <button class="btn" onclick="window.location.href='/tests/integration-browser/__assets__/index.html'">← Back to Menu</button>
+    <h2 style="margin:0;">Vectorization - Similarity Queries</h2>
+  </div>
+
+  <div class="status-row">
+    <div data-testid="status">idle</div>
+    <div data-testid="results-count">0</div>
+    <div data-testid="query-time">-</div>
+  </div>
+
+  <div class="panel">
+    <div class="form-group">
+      <label for="query-input">Query (text or file):</label>
+      <input type="text" id="query-input" placeholder="Enter text query or select file">
+      <input type="file" id="query-file" accept="audio/*,image/*,video/*">
+      <button id="query-btn" class="btn">Search</button>
+    </div>
+
+    <div class="form-group">
+      <label for="modality-select">Modality:</label>
+      <select id="modality-select">
+        <option value="audio">Audio</option>
+        <option value="image">Image</option>
+        <option value="video">Video</option>
+      </select>
+      <label for="k-input">Top K:</label>
+      <input type="number" id="k-input" value="5" min="1" max="20">
+    </div>
+
+    <div class="form-group">
+      <button id="load-sample-btn" class="btn">Load Sample Files</button>
+      <div data-testid="loaded-files">-</div>
+    </div>
+
+    <div class="results" id="query-results">
+      <h3>Query Results:</h3>
+      <div data-testid="similarity-scores">-</div>
+      <div data-testid="result-ids">-</div>
+    </div>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

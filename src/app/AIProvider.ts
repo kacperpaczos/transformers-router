@@ -23,11 +23,21 @@ import { LLMModel } from '../models/LLMModel';
 import { TTSModel } from '../models/TTSModel';
 import { STTModel } from '../models/STTModel';
 import { EmbeddingModel } from '../models/EmbeddingModel';
+import { VectorizationService } from './vectorization/VectorizationService';
+import type {
+  VectorizationServiceConfig,
+  VectorModality,
+  QueryOptions,
+  VectorizeOptions,
+  QueryVectorizeOptions,
+  VectorizationProgressEventData,
+} from '../core/types';
 
 export class AIProvider {
   private modelManager: ModelManager;
   private config: AIProviderConfig;
   private eventEmitter: EventEmitter;
+  private vectorizationService?: VectorizationService;
 
   constructor(config: AIProviderConfig = {}) {
     this.config = config;
@@ -314,10 +324,130 @@ export class AIProvider {
     await Promise.all(updates);
   }
 
+  // ==================== Vectorization Methods ====================
+
+  /**
+   * Initialize vectorization service
+   */
+  async initializeVectorization(
+    config: VectorizationServiceConfig
+  ): Promise<void> {
+    this.vectorizationService = new VectorizationService(config);
+    await this.vectorizationService.initialize();
+  }
+
+  /**
+   * Index files for vector search
+   */
+  async indexFiles(
+    files: File[]
+  ): Promise<{ indexed: string[]; failed: string[] }> {
+    if (!this.vectorizationService) {
+      throw new ValidationError(
+        'Vectorization service not initialized. Call initializeVectorization first.'
+      );
+    }
+    return await this.vectorizationService.indexFiles(files);
+  }
+
+  /**
+   * Query for similar vectors
+   */
+  async queryVectors(
+    input: string | File,
+    modality?: VectorModality,
+    options?: QueryOptions
+  ): Promise<{ ids: string[]; scores: number[] }> {
+    if (!this.vectorizationService) {
+      throw new ValidationError(
+        'Vectorization service not initialized. Call initializeVectorization first.'
+      );
+    }
+    return await this.vectorizationService.query(input, modality, options);
+  }
+
+  /**
+   * Delete vectors by IDs
+   */
+  async deleteVectors(ids: string[]): Promise<void> {
+    if (!this.vectorizationService) {
+      throw new ValidationError(
+        'Vectorization service not initialized. Call initializeVectorization first.'
+      );
+    }
+    await this.vectorizationService.delete(ids);
+  }
+
+  /**
+   * Get resource usage snapshot
+   */
+  async getVectorizationUsage() {
+    if (!this.vectorizationService) {
+      throw new ValidationError(
+        'Vectorization service not initialized. Call initializeVectorization first.'
+      );
+    }
+    return await this.vectorizationService.getUsageSnapshot();
+  }
+
+  /**
+   * Register vectorization event listener
+   */
+  onVectorizationEvent<T = unknown>(
+    event: string,
+    handler: (payload: T) => void
+  ): () => void {
+    if (!this.vectorizationService) {
+      throw new ValidationError(
+        'Vectorization service not initialized. Call initializeVectorization first.'
+      );
+    }
+    return this.vectorizationService.on(event, handler);
+  }
+
+  /**
+   * Vectorize with detailed progress tracking (AsyncGenerator)
+   */
+  async *vectorizeWithProgress(
+    input: File | string | ArrayBuffer,
+    options: VectorizeOptions = {}
+  ): AsyncGenerator<
+    VectorizationProgressEventData,
+    { indexed: string[]; failed: string[] }
+  > {
+    if (!this.vectorizationService) {
+      throw new ValidationError(
+        'Vectorization service not initialized. Call initializeVectorization first.'
+      );
+    }
+    yield* this.vectorizationService.vectorizeWithProgress(input, options);
+  }
+
+  /**
+   * Query with detailed progress tracking (AsyncGenerator)
+   */
+  async *queryWithProgress(
+    input: string | File | ArrayBuffer,
+    options: QueryVectorizeOptions = {}
+  ): AsyncGenerator<
+    VectorizationProgressEventData,
+    { ids: string[]; scores: number[] }
+  > {
+    if (!this.vectorizationService) {
+      throw new ValidationError(
+        'Vectorization service not initialized. Call initializeVectorization first.'
+      );
+    }
+    yield* this.vectorizationService.queryWithProgress(input, options);
+  }
+
   /**
    * Cleanup and dispose
    */
   async dispose(): Promise<void> {
+    if (this.vectorizationService) {
+      await this.vectorizationService.close();
+    }
     await this.modelManager.clearAll();
     this.eventEmitter.removeAllListeners();
   }

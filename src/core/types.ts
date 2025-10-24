@@ -16,6 +16,9 @@ export type {
 // Wspierane modalności
 export type Modality = 'llm' | 'tts' | 'stt' | 'embedding';
 
+// Vectorization modalities (for multimedia embeddings)
+export type VectorModality = 'text' | 'audio' | 'image' | 'video'; // video→audio
+
 // Device types
 export type Device = 'cpu' | 'gpu' | 'webgpu';
 
@@ -263,4 +266,117 @@ export interface CachedModel {
   config: ModelConfig;
   loadedAt: number;
   lastUsedAt: number;
+}
+
+// Vectorization types
+export interface VectorizationServiceConfig {
+  preferAcceleration?: 'webgpu' | 'wasm';
+  storage: 'indexeddb' | 'opfs';
+  externalMock?: { enabled: boolean; latencyMs?: number; errorRate?: number };
+  quotaThresholds?: { warn: number; high: number; critical: number }; // 0-1
+}
+
+export interface ChunkingOptions {
+  strategy: 'recursive' | 'semantic' | 'fixed';
+  chunkSize: number;
+  chunkOverlap: number;
+  separators?: string[];
+}
+
+export interface VectorizeOptions {
+  modality?: VectorModality;
+  chunking?: ChunkingOptions;
+  audioMode?: 'clap' | 'stt' | 'auto';
+  videoOptions?: {
+    extractFrames: boolean;
+    framesEverySec: number;
+    audioWeight: number; // 0-1, for fusion
+  };
+  ocrEnabled?: boolean;
+  maxFileSizeMB?: number;
+  concurrency?: number;
+  batchSize?: number;
+  onProgress?: (event: VectorizationProgressEventData) => void;
+  signal?: AbortSignal;
+}
+
+export interface QueryVectorizeOptions {
+  k?: number;
+  filter?: Partial<VectorDocMeta>;
+  modality?: VectorModality;
+  scoreThreshold?: number;
+  onProgress?: (event: VectorizationProgressEventData) => void;
+}
+
+export interface VectorDocMeta {
+  id: string;
+  modality: VectorModality;
+  mime: string;
+  sizeBytes: number;
+  createdAt: number;
+  [k: string]: unknown;
+}
+
+export interface QueryOptions {
+  k?: number;
+  filter?: Partial<VectorDocMeta>;
+}
+
+export interface ResourceUsageSnapshot {
+  cpuMs: number;
+  memoryMB?: number;
+  storageUsedMB: number;
+  storageLimitMB?: number;
+  modelDownloadsMB: number;
+  gpu?: { backend: 'webgpu' | 'wasm'; usedMB?: number };
+  timestamp: number;
+}
+
+// Vectorization progress and job types
+export type VectorizationStage =
+  | 'queued'
+  | 'initializing'
+  | 'extracting'
+  | 'sanitizing'
+  | 'chunking'
+  | 'embedding'
+  | 'upserting'
+  | 'finalizing'
+  | 'cancelled';
+
+export type JobStatus =
+  | 'queued'
+  | 'running'
+  | 'completed'
+  | 'error'
+  | 'cancelled';
+
+export interface VectorizationProgressEventData {
+  jobId: string;
+  inputMeta: {
+    modality: VectorModality;
+    mime: string;
+    sizeBytes: number;
+    url?: string;
+  };
+  stage: VectorizationStage;
+  stageIndex: number;
+  totalStages: number;
+  stageProgress: number; // 0-1
+  progress: number; // 0-1 (global)
+  etaMs?: number;
+  bytesProcessed?: number;
+  itemsProcessed?: number;
+  chunksTotal?: number;
+  message?: string;
+  partialResult?: {
+    indexedIds?: string[];
+    failedItems?: string[];
+  };
+  warnings?: string[];
+  error?: {
+    stage: VectorizationStage;
+    message: string;
+    retriable?: boolean;
+  };
 }
