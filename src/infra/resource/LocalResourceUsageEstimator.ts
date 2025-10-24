@@ -230,7 +230,11 @@ export class LocalResourceUsageEstimator implements ResourceUsageEstimator {
     limitMB?: number;
   }> {
     try {
-      if ('storage' in navigator && 'estimate' in navigator.storage) {
+      if (
+        'storage' in navigator &&
+        navigator.storage &&
+        'estimate' in navigator.storage
+      ) {
         const estimate = await navigator.storage.estimate();
         return {
           usedMB: (estimate.usage || 0) / (1024 * 1024),
@@ -275,7 +279,11 @@ export class LocalResourceUsageEstimator implements ResourceUsageEstimator {
     // Estimate size of downloaded models
     // This would need to be tracked by the model loading system
     try {
-      if ('storage' in navigator && 'estimate' in navigator.storage) {
+      if (
+        'storage' in navigator &&
+        navigator.storage &&
+        'estimate' in navigator.storage
+      ) {
         const estimate = await navigator.storage.estimate();
         // Rough estimate: models are typically 50-200MB
         return Math.max(0, (estimate.usage || 0) / (1024 * 1024) - 10); // Subtract ~10MB for app data
