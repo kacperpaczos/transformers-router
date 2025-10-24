@@ -14,7 +14,7 @@ export type {
 } from './VoiceProfile';
 
 // Wspierane modalności
-export type Modality = 'llm' | 'tts' | 'stt' | 'embedding';
+export type Modality = 'llm' | 'tts' | 'stt' | 'embedding' | 'ocr';
 
 // Vectorization modalities (for multimedia embeddings)
 export type VectorModality = 'text' | 'audio' | 'image' | 'video'; // video→audio
@@ -75,8 +75,22 @@ export interface EmbeddingConfig {
   normalize?: boolean;
 }
 
+// OCR Configuration
+export interface OCRConfig {
+  model?: string; // dla kompatybilności (Tesseract używa własnych modeli)
+  dtype?: DType;
+  device?: Device;
+  language?: string | string[]; // np. 'eng', 'pol', ['eng', 'pol']
+  performanceMode?: 'auto' | 'fast' | 'quality';
+}
+
 // Unified ModelConfig type
-export type ModelConfig = LLMConfig | TTSConfig | STTConfig | EmbeddingConfig;
+export type ModelConfig =
+  | LLMConfig
+  | TTSConfig
+  | STTConfig
+  | EmbeddingConfig
+  | OCRConfig;
 
 // AI Provider Configuration
 export interface AIProviderConfig {
@@ -84,6 +98,7 @@ export interface AIProviderConfig {
   tts?: TTSConfig;
   stt?: STTConfig;
   embedding?: EmbeddingConfig;
+  ocr?: OCRConfig;
 }
 
 // Chat Options
@@ -130,6 +145,40 @@ export interface STTOptions {
 export interface EmbeddingOptions {
   pooling?: 'mean' | 'cls';
   normalize?: boolean;
+}
+
+// OCR Options
+export interface OCROptions {
+  language?: string | string[];
+  includeBbox?: boolean; // zwrócić współrzędne bounding box
+  includeConfidence?: boolean; // zwrócić poziom pewności
+  psm?: number; // Page Segmentation Mode (0-13)
+  oem?: number; // OCR Engine Mode (0-3)
+  autoLanguage?: boolean; // włącz automatyczne wykrywanie języka, gdy language nie podano
+  allowedLanguages?: string[]; // lista wspieranych języków do których ograniczamy ranking (np. ['eng','pol'])
+  detectionMinTextLength?: number; // minimalna długość tekstu do detekcji języka (domyślnie 20)
+  detectionMaxCandidates?: number; // ilu kandydatów zwrócić w rankingu (domyślnie 5)
+  autoPSM?: boolean; // automatyczny dobór PSM na podstawie układu tekstu
+  autoWhitelist?: boolean; // automatyczna whitelist znaków na podstawie języka
+  preprocess?: 'none' | 'fast'; // opcjonalne proste preprocessing (placeholder)
+}
+
+// OCR Result
+export interface OCRResult {
+  text: string;
+  confidence: number;
+  words?: Array<{
+    text: string;
+    bbox: { x0: number; y0: number; x1: number; y1: number };
+    confidence: number;
+  }>;
+  lines?: Array<{
+    text: string;
+    bbox: { x0: number; y0: number; x1: number; y1: number };
+    confidence: number;
+  }>;
+  usedLanguage?: string; // język faktycznie użyty do końcowego rozpoznania
+  detectedLanguages?: Array<{ lang: string; score: number }>; // ranking języków ISO-639-3
 }
 
 // Chat Message

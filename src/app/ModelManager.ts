@@ -9,6 +9,7 @@ import type {
   TTSConfig,
   STTConfig,
   EmbeddingConfig,
+  OCRConfig,
   ModelStatus,
 } from '../core/types';
 import { ModelCache } from './cache/ModelCache';
@@ -17,6 +18,7 @@ import { LLMModel } from '../models/LLMModel';
 import { TTSModel } from '../models/TTSModel';
 import { STTModel } from '../models/STTModel';
 import { EmbeddingModel } from '../models/EmbeddingModel';
+import { OCRModel } from '../models/OCRModel';
 import { ProgressTracker } from '../utils/ProgressTracker';
 import { EventEmitter } from '@infra/events/EventEmitter';
 import { getConfig } from './state';
@@ -224,6 +226,8 @@ export class ModelManager {
           config as EmbeddingConfig,
           this.backendSelector
         );
+      case 'ocr':
+        return new OCRModel(config as OCRConfig, this.backendSelector);
       default:
         throw new ModelUnavailableError(
           `Unknown modality: ${modality}`,

@@ -7,3 +7,4 @@ export { LLMModel } from './LLMModel';
 export { TTSModel } from './TTSModel';
 export { STTModel } from './STTModel';
 export { EmbeddingModel } from './EmbeddingModel';
+export { OCRModel } from './OCRModel';

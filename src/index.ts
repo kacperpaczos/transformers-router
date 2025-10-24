@@ -25,6 +25,7 @@ export { LLMModel } from './models/LLMModel';
 export { TTSModel } from './models/TTSModel';
 export { STTModel } from './models/STTModel';
 export { EmbeddingModel } from './models/EmbeddingModel';
+export { OCRModel } from './models/OCRModel';
 
 // Core classes
 export { ModelManager } from './app/ModelManager';
@@ -59,6 +60,7 @@ export type {
   TTSConfig,
   STTConfig,
   EmbeddingConfig,
+  OCRConfig,
   ModelConfig,
   // Message types
   Message,
@@ -70,6 +72,8 @@ export type {
   TTSOptions,
   STTOptions,
   EmbeddingOptions,
+  OCROptions,
+  OCRResult,
   // Status types
   ModelStatus,
   ProgressInfo,

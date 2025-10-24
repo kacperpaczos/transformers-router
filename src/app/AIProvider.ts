@@ -11,6 +11,8 @@ import type {
   TTSOptions,
   STTOptions,
   EmbeddingOptions,
+  OCROptions,
+  OCRResult,
   Modality,
   EventType,
   EventCallback,
@@ -23,6 +25,7 @@ import { LLMModel } from '../models/LLMModel';
 import { TTSModel } from '../models/TTSModel';
 import { STTModel } from '../models/STTModel';
 import { EmbeddingModel } from '../models/EmbeddingModel';
+import { OCRModel } from '../models/OCRModel';
 import { VectorizationService } from './vectorization/VectorizationService';
 import type {
   VectorizationServiceConfig,
@@ -143,6 +146,27 @@ export class AIProvider {
       this.config.stt
     );
     return (model as STTModel).transcribe(audio, options);
+  }
+
+  /**
+   * Recognize text from image (OCR)
+   */
+  async recognize(
+    image: string | Blob | File,
+    options: OCROptions = {}
+  ): Promise<OCRResult> {
+    if (!this.config.ocr) {
+      throw new ValidationError(
+        'OCR not configured. Please provide ocr config in AIProvider constructor.',
+        'ocr'
+      );
+    }
+
+    const model = await this.modelManager.getOrLoadModel(
+      'ocr',
+      this.config.ocr
+    );
+    return (model as OCRModel).recognize(image, options);
   }
 
   // ==================== Embedding Methods ====================

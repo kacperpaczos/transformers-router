@@ -106,6 +106,7 @@
     "@types/node": "^24.7.1",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
+    "@types/tesseract.js": "^0.0.2",
     "@typescript-eslint/eslint-plugin": "^8.46.1",
     "@typescript-eslint/parser": "^8.46.1",
     "canvas": "^3.2.0",
@@ -139,5 +140,10 @@
     "src/**/*.{json,md}": [
       "prettier --write"
     ]
+  },
+  "dependencies": {
+    "franc": "^6.2.0",
+    "franc-min": "^6.2.0",
+    "tesseract.js": "^6.0.1"
   }
 }
