@@ -14,7 +14,6 @@ import { createAIProvider } from '../../app/AIProvider';
 import type {
   VectorizeOptions,
   QueryVectorizeOptions,
-  ProgressEventData,
   VectorizationProgressEventData,
   VectorizationServiceConfig,
 } from '../../core/types';
@@ -59,9 +58,15 @@ export interface UseVectorizationReturn {
   onProgress: (
     handler: (event: VectorizationProgressEventData) => void
   ) => () => void;
-  onWarning: (handler: (event: ProgressEventData) => void) => () => void;
-  onError: (handler: (event: ProgressEventData) => void) => () => void;
-  onComplete: (handler: (event: ProgressEventData) => void) => () => void;
+  onWarning: (
+    handler: (event: VectorizationProgressEventData) => void
+  ) => () => void;
+  onError: (
+    handler: (event: VectorizationProgressEventData) => void
+  ) => () => void;
+  onComplete: (
+    handler: (event: VectorizationProgressEventData) => void
+  ) => () => void;
 }
 
 /**
@@ -82,6 +87,15 @@ export function useVectorization(
   const currentMessage = ref<string | null>(null);
   const isProcessing = ref(false);
   const events = ref<VectorizationProgressEventData[]>([]);
+
+  // Local listener registries for manual subscriptions
+  const progressListeners: Array<(e: VectorizationProgressEventData) => void> =
+    [];
+  const warningListeners: Array<(e: VectorizationProgressEventData) => void> =
+    [];
+  const errorListeners: Array<(e: VectorizationProgressEventData) => void> = [];
+  const completeListeners: Array<(e: VectorizationProgressEventData) => void> =
+    [];
 
   const { config, autoInitialize = false } = options;
 
@@ -127,6 +141,8 @@ export function useVectorization(
         currentStage.value = event.stage;
         currentMessage.value = event.message || null;
         isProcessing.value = true;
+        // Propagate to manual listeners
+        for (const listener of progressListeners) listener(event);
       }
     );
 
@@ -142,6 +158,7 @@ export function useVectorization(
       'vectorization:stage:end',
       (event: VectorizationProgressEventData) => {
         currentMessage.value = `Completed ${event.stage}`;
+        for (const listener of completeListeners) listener(event);
       }
     );
 
@@ -149,6 +166,7 @@ export function useVectorization(
       'vectorization:warning',
       (event: VectorizationProgressEventData) => {
         currentMessage.value = `Warning: ${event.warnings?.join(', ')}`;
+        for (const listener of warningListeners) listener(event);
       }
     );
 
@@ -157,6 +175,7 @@ export function useVectorization(
       (event: VectorizationProgressEventData) => {
         error.value = new Error(event.error?.message || 'Vectorization error');
         isProcessing.value = false;
+        for (const listener of errorListeners) listener(event);
       }
     );
   };
@@ -245,43 +264,41 @@ export function useVectorization(
   const onProgress = (
     handler: (event: VectorizationProgressEventData) => void
   ) => {
-    if (!provider.value) return () => {};
-
-    const unsubscribe = provider.value.onVectorizationEvent(
-      'vectorization:progress',
-      handler
-    );
-    return unsubscribe;
+    progressListeners.push(handler);
+    return () => {
+      const idx = progressListeners.indexOf(handler);
+      if (idx >= 0) progressListeners.splice(idx, 1);
+    };
   };
 
-  const onWarning = (handler: (event: ProgressEventData) => void) => {
-    if (!provider.value) return () => {};
-
-    const unsubscribe = provider.value.onVectorizationEvent(
-      'vectorization:warning',
-      handler
-    );
-    return unsubscribe;
+  const onWarning = (
+    handler: (event: VectorizationProgressEventData) => void
+  ) => {
+    warningListeners.push(handler);
+    return () => {
+      const idx = warningListeners.indexOf(handler);
+      if (idx >= 0) warningListeners.splice(idx, 1);
+    };
   };
 
-  const onError = (handler: (event: ProgressEventData) => void) => {
-    if (!provider.value) return () => {};
-
-    const unsubscribe = provider.value.onVectorizationEvent(
-      'vectorization:error',
-      handler
-    );
-    return unsubscribe;
+  const onError = (
+    handler: (event: VectorizationProgressEventData) => void
+  ) => {
+    errorListeners.push(handler);
+    return () => {
+      const idx = errorListeners.indexOf(handler);
+      if (idx >= 0) errorListeners.splice(idx, 1);
+    };
   };
 
-  const onComplete = (handler: (event: ProgressEventData) => void) => {
-    if (!provider.value) return () => {};
-
-    const unsubscribe = provider.value.onVectorizationEvent(
-      'vectorization:stage:end',
-      handler
-    );
-    return unsubscribe;
+  const onComplete = (
+    handler: (event: VectorizationProgressEventData) => void
+  ) => {
+    completeListeners.push(handler);
+    return () => {
+      const idx = completeListeners.indexOf(handler);
+      if (idx >= 0) completeListeners.splice(idx, 1);
+    };
   };
 
   // Cleanup on unmount (guard for tests calling composable outside component)

@@ -80,38 +80,10 @@ export function useVectorization(
   const [events, setEvents] = useState<VectorizationProgressEventData[]>([]);
 
   const providerRef = useRef<AIProvider | null>(null);
+  const isInitializedRef = useRef(false);
+  const isInitializingRef = useRef(false);
   const eventListenersRef = useRef<Map<string, (() => void) | null>>(new Map());
   const { config, autoInitialize = false } = options;
-
-  // Initialize vectorization service
-  const initialize = useCallback(async () => {
-    setIsInitializing(true);
-    setError(null);
-
-    try {
-      let newProvider: AIProvider;
-      if (options.providerFactory) {
-        newProvider = options.providerFactory();
-      } else {
-        newProvider = createAIProvider();
-      }
-
-      providerRef.current = newProvider;
-      setProvider(newProvider);
-
-      if (config) {
-        await newProvider.initializeVectorization(config);
-      }
-
-      // Setup event listeners after initialization
-      setupEventListeners(newProvider);
-      setIsInitialized(true);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error(String(err)));
-    } finally {
-      setIsInitializing(false);
-    }
-  }, [config, isInitialized, isInitializing]);
 
   const setupEventListeners = useCallback((prov: AIProvider) => {
     // Progress events
@@ -157,6 +129,41 @@ export function useVectorization(
       }
     );
   }, []);
+
+  // Initialize vectorization service
+  const initialize = useCallback(async () => {
+    if (isInitializedRef.current || isInitializingRef.current) return;
+
+    isInitializingRef.current = true;
+    setIsInitializing(true);
+    setError(null);
+
+    try {
+      let newProvider: AIProvider;
+      if (options.providerFactory) {
+        newProvider = options.providerFactory();
+      } else {
+        newProvider = createAIProvider();
+      }
+
+      providerRef.current = newProvider;
+      setProvider(newProvider);
+
+      if (config) {
+        await newProvider.initializeVectorization(config);
+      }
+
+      // Setup event listeners after initialization
+      setupEventListeners(newProvider);
+      isInitializedRef.current = true;
+      setIsInitialized(true);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+    } finally {
+      isInitializingRef.current = false;
+      setIsInitializing(false);
+    }
+  }, [config, setupEventListeners]);
 
   // Auto-initialize if requested
   useEffect(() => {
@@ -236,8 +243,11 @@ export function useVectorization(
       await providerRef.current.dispose();
       providerRef.current = null;
     }
+    isInitializedRef.current = false;
+    isInitializingRef.current = false;
     setProvider(null);
     setIsInitialized(false);
+    setIsInitializing(false);
     setIsProcessing(false);
     setCurrentJob(null);
     setCurrentProgress(0);

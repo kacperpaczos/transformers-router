@@ -140,7 +140,21 @@ export class ImageEmbeddingAdapter implements EmbeddingAdapter {
   private async fileToImageData(file: File): Promise<ImageData> {
     return new Promise((resolve, reject) => {
       const img = new Image();
-      const canvas = document.createElement('canvas');
+
+      // Always resolve document dynamically from globalThis to honor runtime overrides in tests
+      const doc = (globalThis as any).document;
+
+      if (!doc || typeof doc.createElement !== 'function') {
+        reject(new Error('Canvas context not available'));
+        return;
+      }
+
+      const canvas = doc.createElement('canvas');
+      if (!canvas || typeof canvas.getContext !== 'function') {
+        reject(new Error('Canvas context not available'));
+        return;
+      }
+
       const ctx = canvas.getContext('2d');
 
       if (!ctx) {
