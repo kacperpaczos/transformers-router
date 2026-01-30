@@ -1,6 +1,6 @@
 {
   "name": "lxrt",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Unified TypeScript library for local AI - LLM, TTS, STT, Embeddings, OCR, and RAG vectorization with Transformers.js",
   "homepage": "https://github.com/kacperpaczos/lxrt#readme",
   "engines": {
