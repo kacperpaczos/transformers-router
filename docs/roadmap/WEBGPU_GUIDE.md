@@ -75,7 +75,16 @@ if (caps.webgpuAvailable) {
 ```
 
 ## Node.js Support
-WebGPU in Node.js requires hardware binding (e.g., `dawn`). This is currently in experimental phase. LXRT will fallback to WASM/CPU in standard Node.js environments unless configured with specific bindings.
+**STATUS: NOT SUPPORTED / PLACEHOLDER**
+
+WebGPU in Node.js currently has **no implementation** in this library (it is a stub).
+
+### Recommended Workaround: Headless Browser Bridge
+To achieve WebGPU acceleration in a Node.js environment (e.g., for Agents), you must run `lxrt` inside a Headless Browser (like Playwright or Puppeteer) and communicate with it.
+
+1.  **Launch** Playwright with WebGPU enabled.
+2.  **Load** `lxrt` in the browser context.
+3.  **Bridge** calls (Chat, Embed) via `page.evaluate()` or WebSockets.
 
 ## Troubleshooting
 

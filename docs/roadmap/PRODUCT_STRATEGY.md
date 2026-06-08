@@ -19,10 +19,10 @@ The core promise of "Unified Local AI" is technically valid but functionally fra
 
 | Feature | Promised (Docs/Marketing) | Implemented | Reality Check / Gap Analysis |
 | :--- | :--- | :--- | :--- |
-| **LLM Inference** | WebGPU massive speedup (10-50x) | ✅ Implemented | **Browser:** Excellent. **Node:** Placeholder only (`GpuDetector` stub). Node users are stuck with CPU/WASM. |
+| **LLM Inference** | WebGPU massive speedup (10-50x) | ✅ Implemented | **Browser:** Excellent. **Node:** ❌ **MISSING / BLOCKED**. `GpuDetector` is a placeholder. No native WebGPU support. Requires "Headless Browser Bridge" or `dawn` bindings. |
 | **Multi-modal** | LLM, TTS, STT, Embedding, OCR | ✅ Implemented | API is unified, but relies heavily on specific model architectures (Whisper, SpeechT5). OCR is Tesseract.js wrapper (solid but separate ecosystem). |
 | **Unified API** | One `AIProvider` for everything | ✅ Implemented | **Success.** The facade works well. `warmup('llm')` vs `chat()` logic is clean. |
-| **Vector/RAG** | PDF/DOCX support, Local Vector Store | ⚠️ Partial | `VectorizationService` exists and handles PDF/DOCX, but is tightly coupled to `IndexedDB`. No abstraction for other stores (e.g., PGVector, SQLite) yet. |
+| **Vector/RAG** | PDF/DOCX support, Local Vector Store | ⚠️ Partial | `VectorizationService` exists but is hardcoded to `IndexedDB`. **Node:** IndexedDB is missing/ephemeral. Requires architecture pivot to persistent store (SQLite/LancDB) or Browser Bridge. |
 | **Tool Use** | Function Calling, JSON Mode | ✅ Implemented | Basic regex/parsing implementation in `LLMModel`. Works for simple cases, likely fragile for complex nested JSON. |
 | **Integration** | Vercel AI SDK, Stagehand, LangChain | ✅ Implemented | Adapters exist but are thin wrappers. `StagehandAdapter` blindly delegates to `OpenAIAdapter`. |
 
@@ -48,7 +48,7 @@ The core promise of "Unified Local AI" is technically valid but functionally fra
 *   **Strengths:** `loadingPromises` map prevents race conditions during async model loading.
 *   **Weaknesses:**
     *   **Error Swallowing:** Adapters (e.g., `OpenAIAdapter`) often catch specific errors and re-throw generic `Error` objects, hiding the root cause (OOM, missing file, etc.) from the user.
-    *   **Memory Management:** Loading multiple modalities (LLM + TTS + Embedding) in a browser tab will likely crash (OOM) on standard hardware. No built-in memory pressure manager.
+    *   **Memory Management:** ❌ **CRITICAL RISK**. Loading multiple modalities (LLM + TTS + Embedding) simultaneously causes OOM crashes on 8GB-16GB machines. No "Memory Budget" or "Swap-in/Swap-out" logic.
 
 ---
 
@@ -67,7 +67,8 @@ The core promise of "Unified Local AI" is technically valid but functionally fra
 
 ## 5. Strategic Roadmap & TODOs
 
-### Phase 1: Quick Wins (Stabilization)
+### Phase 1: Quick Wins & Critical Pivots
+*   [ ] **[Critical] Architecture Pivot (Node.js):** Adopt "Headless Browser Bridge" pattern. Run `lxrt` inside a controlled Playwright instance to access WebGPU + IndexedDB, exposing it to Node.js via WebSocket/Stdio.
 *   [ ] **[Critical] Decouple `types.ts`:** Split into domains (`@domain/llm`, `@domain/tts`) to stop the "God Object" growth.
 *   [ ] **[DX] Node LTS Support:** Investigate if Node 24 is truly required or if we can polyfill for Node 22 (LTS). This opens 90% of the market.
 *   [ ] **[Reliability] Memory Manager:** Implement a simple `MemoryBudget` service that unloads the Embedding model before loading the LLM if RAM is tight.

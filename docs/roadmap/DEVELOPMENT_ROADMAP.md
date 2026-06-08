@@ -14,6 +14,16 @@
 
 ## 📅 v0.7.1 Goals
 
+### 🚨 Critical Pivots (Architecture Correction)
+**Priority:** Blocking
+**Status:** **NEW**
+
+Detailed in `PRODUCT_STRATEGY.md` (Review 2026-01-30).
+
+- [ ] **Headless Browser Bridge:** Implement a reference architecture for running `lxrt` inside Playwright/Puppeteer to bypass the Node.js WebGPU limitation.
+- [ ] **Memory Manager Service:** Implement a global "Memory Budget" controller to prevent OOM when loading LLM+Vision+Embeddings.
+- [ ] **Persistent Vector Store:** Implement a persistent `IVectorStore` adapter (e.g. SQLite) for Node.js usage.
+
 ### 1. OCR Model Improvements
 **Priority:** High
 **Status:** Planned
@@ -50,6 +60,9 @@ Addressing critical tech debt and architectural risks identified in the 2026 Aud
 - [ ] **Code Structure Cleanup:**
     - Move `VoiceProfileRegistry` to a dedicated Domain Service or Config layer.
     - Extract `LogBus` to `src/infra/logging`.
+- [ ] **Download Manager:**
+    - Implement chunk-based parallel downloading for models.
+    - Add support for pausing/resuming downloads (Range headers).
 
 ---
 
@@ -73,9 +86,10 @@ Long-term modernization goals to achieve Tier-1 library status.
 
 - [ ] **Infrastructure Modernization:**
     - [ ] Modular Architecture (Split into `@lxrt/core`, `@lxrt/llm`, etc.).
+    - [ ] Modular Architecture (Split into `@lxrt/core`, `@lxrt/llm`, etc.).
     - [ ] Plugin System for third-party model support.
 - [ ] **Ecosystem Alignment:**
-    - [ ] Full WASM/WebGPU abstraction layer (Hardware Agnostic).
+    - [ ] **Full WASM/WebGPU abstraction layer:** (Re-evaluating feasibility: Browser-first focus is likely safer).
     - [ ] OpenTelemetry Integration for observability.
 - [ ] **Tooling & DX:**
     - [ ] Changeset/Semantic Release automation.
